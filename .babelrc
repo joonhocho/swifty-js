@@ -1,0 +1,33 @@
+{
+  "presets": [
+    ["env", {
+      "targets": {
+        "node": "current"
+      },
+      "exclude": [
+        "transform-regenerator"
+      ],
+      "debug": true
+    }]
+  ],
+  "plugins": [
+    "add-module-exports",
+    "transform-class-properties",
+    ["transform-object-rest-spread", {
+      "useBuiltIns": true
+    }],
+    ["fast-async", {
+      "env": {
+        "augmentObject": false,
+        "dontMapStackTraces": true,
+        "dontInstallRequireHook": true
+      },
+      "compiler": {
+        "promises": true,
+        "generators": false
+      },
+      "runtimePattern": null,
+      "useRuntimeModule": false
+    }]
+  ]
+}

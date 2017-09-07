@@ -1,0 +1,58 @@
+{
+  "name": "swifty-js",
+  "version": "0.0.1",
+  "description": "Swift like property observer (willSet, didSet) pattern for JavaScript.",
+  "main": "lib/index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "babel src --out-dir lib",
+    "build-watch": "babel src --watch --out-dir lib",
+    "clear": "rm -rf ./lib ./coverage ./.nyc_output",
+    "coverage": "nyc npm test && nyc report --reporter=text-lcov | coveralls",
+    "nyc": "nyc npm test && nyc report --reporter=lcov",
+    "prepublish": "npm run clear && npm test",
+    "pretest": "npm run build",
+    "start": "npm test",
+    "test": "mocha",
+    "test-watch": "mocha --watch",
+    "update-D": "npm install --save-dev babel-cli@latest babel-preset-es2015@latest babel-preset-stage-0@latest babel-register@latest chai@latest chai-as-promised@latest coveralls@latest es6-promise@latest mocha@latest nyc@latest",
+    "watch": "npm run build-watch & npm run test-watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joonhocho/swifty-js.git"
+  },
+  "keywords": [
+    "swifty-js",
+    "property",
+    "observer",
+    "willSet",
+    "didSet"
+  ],
+  "author": "Joon Ho Cho",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/joonhocho/swifty-js/issues"
+  },
+  "homepage": "https://github.com/joonhocho/swifty-js#readme",
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-eslint": "^7.0.0",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.23.0",
+    "babel-preset-env": "^1.5.1",
+    "babel-register": "^6.24.1",
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "coveralls": "^2.11.14",
+    "eslint": "^3.7.1",
+    "eslint-import-resolver-babel-module-alias": "^1.5.1",
+    "eslint-plugin-import": "^2.7.0",
+    "fast-async": "^6.2.2",
+    "mocha": "^3.1.0",
+    "nyc": "^8.3.0"
+  }
+}
