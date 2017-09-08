@@ -1,4 +1,4 @@
-/* eslint max-len: 0, no-continue: 0, no-underscore-dangle: 0, no-use-before-define: 0, max-params: 0, max-statements: 0, no-return-assign: 0 */
+/* eslint max-len: 0, no-continue: 0, no-underscore-dangle: 0, no-use-before-define: 0, max-params: 0, max-statements: 0, no-return-assign: 0, no-confusing-arrow: 0, no-extra-parens: 0 */
 import {
   isPlainObject,
   isFunction,
@@ -19,67 +19,94 @@ const $initDesc = {
 };
 
 
-const createSetHandler = (index, fn, keys) => function(val) {
-  const args = [];
-  for (let i = 0, il = keys.length; i < il; i++) {
-    args.push(i === index ? val : this[keys[i]]);
-  }
-  fn.apply(this, args);
-};
+const $$init = '$$init';
+const $$willSetMap = '$$willSetMap';
+const $$propDidSet = '$$propDidSet';
+const $$didSetMap = '$$didSetMap';
+const $$didSetManyMap = '$$didSetManyMap';
+const $$onDidSet = '$$onDidSet';
+const $$onDidSetMany = '$$onDidSetMany';
+const $$enumerables = '$$enumerables';
+const $$defaultKeys = '$$defaultKeys';
+const $$initial = '$$initial';
+const $$pending = '$$pending';
+const $$updating = '$$updating';
+const $commitEnabled = '$commitEnabled';
+const $$fnIdKey = '$$ID';
+const $$fnKeys = '$$KEYS';
 
+const create$key = (key) => `K$${key}`;
+const create$queue = (key) => `Q$${key}`;
 
-const define$willSet = (mapKey, offKey) => function(keys, fn) {
-  const map = this[mapKey];
+let nextFnId = 1;
+
+const define$willSet = (mapKey, manyMapKey) => function(keys, fn) {
   if (typeof keys === 'string' || keys.length === 1) {
+    const map = this[mapKey];
     const key = typeof keys === 'string' ? keys : keys[0];
     (map[key] || (map[key] = [])).push(fn);
-    return () => this[offKey](key, fn);
+    return () => arrayRemove(map[key], fn);
   }
 
-  const fns = keys.map((key, i) => {
-    const newFn = createSetHandler(i, fn, keys);
-    (map[key] || (map[key] = [])).push(newFn);
-    return newFn;
-  });
+  if (manyMapKey) {
+    const map = this[manyMapKey];
 
-  return () => {
+    if (fn[$$fnIdKey] == null) fn[$$fnIdKey] = nextFnId++;
+    fn[$$fnKeys] = keys;
+
     for (let i = 0, il = keys.length; i < il; i++) {
-      this[offKey](keys[i], fns[i]);
+      const key = keys[i];
+      (map[key] || (map[key] = [])).push(fn);
     }
-  };
+
+    return () => {
+      for (let i = 0, il = keys.length; i < il; i++) {
+        arrayRemove(map[keys[i]], fn);
+      }
+    };
+  }
+
+  throw new Error('multiple keys is not supported');
 };
 
 
-const define$offWillSet = (mapKey) => function(key, fn) {
-  const list = this[mapKey][key];
-  return list ? arrayRemove(list, fn) : false;
-};
-
-
-const define$willSetMap = (mapKey) => function() {
+const define$map = (mapKey) => function() {
   const val = Object.create(null);
   defineHiddenConstant(this, mapKey, val);
   return val;
 };
 
 
-const $$init = '$$init';
-const $$willSetMap = '$$willSetMap';
-const $$didSetMap = '$$didSetMap';
-const $$enumerables = '$$enumerables';
-const $$onDidSet = '$$onDidSet';
-const $$defaultKeys = '$$defaultKeys';
+const $willSet = define$willSet($$willSetMap, null);
+const $didSet = define$willSet($$didSetMap, $$didSetManyMap);
+const $$willSetMapGetter = define$map($$willSetMap);
+const $$didSetMapGetter = define$map($$didSetMap);
+const $$didSetManyMapGetter = define$map($$didSetManyMap);
 
-const $willSet = define$willSet($$willSetMap, '$offWillSet');
-const $didSet = define$willSet($$didSetMap, '$offDidSet');
-const $offWillSet = define$offWillSet($$willSetMap);
-const $offDidSet = define$offWillSet($$didSetMap);
-const $$willSetMapGetter = define$willSetMap($$willSetMap);
-const $$didSetMapGetter = define$willSetMap($$didSetMap);
+const $$initialGetter = function() {
+  const val = Object.create(null);
+  defineHiddenProperty(this, $$initial, val);
+  return val;
+};
+const $$pendingGetter = function() {
+  const val = Object.create(null);
+  defineHiddenProperty(this, $$pending, val);
+  return val;
+};
+const $$updatingGetter = function() {
+  const val = false;
+  defineHiddenProperty(this, $$updating, val);
+  return val;
+};
+const $commitEnabledGetter = function() {
+  const val = true;
+  defineHiddenProperty(this, $commitEnabled, val);
+  return val;
+};
 
 
 const computeSetter = (key, get) => function() {
-  this[key] = get.call(this);
+  this[key] = get.apply(this, arguments);
 };
 
 const $keyGetter = ($key) => function() {
@@ -126,67 +153,152 @@ const readOnlyPropSetter = ($key) => function(val) {
   }
 };
 
-const observablePropSetter = (key, $key, $queue, hasSet, set, hasWillSet, willSet, hasDidSet, didSet) => function(newValue) {
-  const queue = this[$queue];
-  if (arrayIndexOfNaN(queue, newValue) >= 0) {
-    // already setting this value in the stack
-    // avoid infinite loop
-    return;
-  }
+const observablePropSetter = (key, $key, $queue, set, willSet) => {
+  const hasSet = isFunction(set);
+  const hasWillSet = isFunction(willSet);
 
-  queue.push(newValue);
-  if (queue.length > 1) {
-    // not initial set
-    // simply push to queue and return
-    return;
-  }
-
-  for (let i = 0; i < queue.length; i++) {
-    const nextVal = queue[i];
-    const val = this[$key];
-
-    if (nextVal === val) continue;
-
-    if (hasWillSet) {
-      willSet.call(this, nextVal, val);
+  return function(newValue) {
+    const queue = this[$queue];
+    if (arrayIndexOfNaN(queue, newValue) >= 0) {
+      // already setting this value in the stack
+      // avoid infinite loop
+      return;
     }
 
-    const willSets = this[$$willSetMap][key];
-    if (willSets != null && willSets.length > 0) {
-      const list = willSets.slice();
-      for (let j = 0, jl = list.length; j < jl; j++) {
-        list[j].call(this, nextVal, val);
+    queue.push(newValue);
+    if (queue.length > 1) {
+      // not initial set
+      // simply push to queue and return
+      return;
+    }
+
+    const initialUpdate = !this[$$updating];
+    const pending = this[$$pending];
+    const willSetMap = this[$$willSetMap];
+
+    if (initialUpdate) {
+      this[$$updating] = true;
+    }
+
+    this[$$initial][key] = this[$key];
+
+    for (let i = 0; i < queue.length; i++) {
+      const nextVal = queue[i];
+      const val = this[$key];
+
+      if (nextVal === val) continue;
+
+      if (hasWillSet) {
+        willSet.call(this, nextVal, val);
       }
+
+      const willSets = willSetMap[key];
+      if (willSets != null && willSets.length > 0) {
+        const list = willSets.slice();
+        for (let j = 0, jl = list.length; j < jl; j++) {
+          list[j].call(this, nextVal, val);
+        }
+      }
+
+      if (hasSet) {
+        set.call(this, nextVal, val);
+      }
+
+      this[$key] = nextVal;
+      pending[key] = nextVal;
     }
 
-    if (hasSet) {
-      set.call(this, nextVal, val);
+    queue.length = 0;
+
+    if (initialUpdate && this[$commitEnabled]) {
+      this.$commit();
     }
+  };
+};
 
-    this[$key] = nextVal;
 
-    if (hasDidSet) {
+function $commit() {
+  // do didSet
+  const initial = this[$$initial];
+  const pending = this[$$pending];
+  const propDidSetMap = this[$$propDidSet];
+  const onDidSetMap = this[$$onDidSet];
+  const onDidSetManyMap = this[$$onDidSetMany];
+  const didSetMap = this[$$didSetMap];
+  const didSetManyMap = this[$$didSetManyMap];
+
+  this[$$updating] = false;
+  this[$$pending] = Object.create(null);
+  this[$$initial] = Object.create(null);
+
+  const keys = Object.keys(pending);
+
+  let onDidSetManyFns = [];
+  let didSetManyFns = [];
+
+  for (let i = 0, il = keys.length; i < il; i++) {
+    const key = keys[i];
+    const nextVal = pending[key];
+    const val = initial[key];
+
+    const didSet = propDidSetMap[key];
+    if (didSet) {
       didSet.call(this, val, nextVal);
     }
 
-    const $on = this[$$onDidSet][key];
-    if ($on != null) {
-      for (let j = 0, jl = $on.length; j < jl; j++) {
-        $on[j].call(this);
+    const onDidSets = onDidSetMap[key];
+    if (onDidSets != null) {
+      for (let j = 0, jl = onDidSets.length; j < jl; j++) {
+        onDidSets[j].call(this);
       }
     }
 
-    const didSets = this[$$didSetMap][key];
+    const didSets = didSetMap[key];
     if (didSets != null && didSets.length > 0) {
       const list = didSets.slice();
       for (let j = 0, jl = list.length; j < jl; j++) {
         list[j].call(this, val, nextVal);
       }
     }
+
+    const onDidSetManys = onDidSetManyMap[key];
+    if (onDidSetManys != null && onDidSetManys.length > 0) {
+      onDidSetManyFns = onDidSetManyFns.concat(onDidSetManys);
+    }
+
+    const didSetManys = didSetManyMap[key];
+    if (didSetManys != null && didSetManys.length > 0) {
+      didSetManyFns = didSetManyFns.concat(didSetManys);
+    }
   }
 
-  queue.length = 0;
-};
+  if (onDidSetManyFns.length > 0) {
+    const fnIdMap = Object.create(null);
+    for (let i = 0, il = onDidSetManyFns.length; i < il; i++) {
+      const fn = onDidSetManyFns[i];
+      const fnId = fn[$$fnIdKey];
+      if (!fnIdMap[fnId]) {
+        fnIdMap[fnId] = true;
+        fn.call(this);
+      }
+    }
+  }
+
+  if (didSetManyFns.length > 0) {
+    const fnIdMap = Object.create(null);
+    for (let i = 0, il = didSetManyFns.length; i < il; i++) {
+      const fn = didSetManyFns[i];
+      const fnId = fn[$$fnIdKey];
+      if (!fnIdMap[fnId]) {
+        fnIdMap[fnId] = true;
+        const args = fn[$$fnKeys].map(
+          (k) => (k in initial) ? initial[k] : this[k]
+        );
+        fn.apply(this, args);
+      }
+    }
+  }
+}
 
 
 const createNewClass = () => class Class {
@@ -226,11 +338,12 @@ const create = (props) => {
 
   defineHiddenConstants(prototype, {
     [$$defaultKeys]: [],
+    [$$propDidSet]: Object.create(null),
+    [$$onDidSetMany]: Object.create(null),
     [$$onDidSet]: Object.create(null),
     $willSet,
     $didSet,
-    $offWillSet,
-    $offDidSet,
+    $commit,
   });
 
   defineProperty(prototype, $$willSetMap, {
@@ -241,6 +354,36 @@ const create = (props) => {
 
   defineProperty(prototype, $$didSetMap, {
     get: $$didSetMapGetter,
+    enumerable: false,
+    configurable: false,
+  });
+
+  defineProperty(prototype, $$didSetManyMap, {
+    get: $$didSetManyMapGetter,
+    enumerable: false,
+    configurable: false,
+  });
+
+  defineProperty(prototype, $$initial, {
+    get: $$initialGetter,
+    enumerable: false,
+    configurable: false,
+  });
+
+  defineProperty(prototype, $$pending, {
+    get: $$pendingGetter,
+    enumerable: false,
+    configurable: false,
+  });
+
+  defineProperty(prototype, $$updating, {
+    get: $$updatingGetter,
+    enumerable: false,
+    configurable: false,
+  });
+
+  defineProperty(prototype, $commitEnabled, {
+    get: $commitEnabledGetter,
     enumerable: false,
     configurable: false,
   });
@@ -394,20 +537,30 @@ const defineGetSetProperty = (Class, key, {
   assertUndefined('value', value, 'get/set', key);
   assertUndefined('writable', writable, 'get/set', key);
 
-  const $key = `$${key}`;
-  const $queue = `$${key}$Q`;
-
-  const hasSet = isFunction(set);
-  const hasWillSet = isFunction(willSet);
-  const hasDidSet = isFunction(didSet);
+  if (isFunction(didSet)) {
+    Class.prototype[$$propDidSet][key] = didSet;
+  }
 
   if (onDidSet != null && onDidSet.length > 0) {
-    for (let i = 0, il = onDidSet.length; i < il; i++) {
-      const on = onDidSet[i];
+    if (onDidSet.length === 1) {
       const map = Class.prototype[$$onDidSet];
-      (map[on] || (map[on] = [])).push(computeSetter(key, get));
+      const onKey = onDidSet[0];
+      (map[onKey] || (map[onKey] = [])).push(
+        computeSetter(key, get)
+      );
+    } else {
+      const manyMap = Class.prototype[$$onDidSetMany];
+      const fn = computeSetter(key, get);
+      fn[$$fnIdKey] = nextFnId++;
+      for (let i = 0, il = onDidSet.length; i < il; i++) {
+        const onKey = onDidSet[i];
+        (manyMap[onKey] || (manyMap[onKey] = [])).push(fn);
+      }
     }
   }
+
+  const $key = create$key(key);
+  const $queue = create$queue(key);
 
   defineProperty(Class.prototype, $key, {
     get: $keyGetter($key),
@@ -427,7 +580,10 @@ const defineGetSetProperty = (Class, key, {
     get: isFunction(get) ?
       observablePropGetterWithGetter(key, $key, get) :
       simpleGetter($key),
-    set: observablePropSetter(key, $key, $queue, hasSet, set, hasWillSet, willSet, hasDidSet, didSet),
+    set: observablePropSetter(
+      key, $key, $queue,
+      set, willSet
+    ),
     enumerable,
     configurable: false,
   };
@@ -463,11 +619,12 @@ const defineValueProperty = (Class, key, {
     Class.prototype[$$defaultKeys].push(key);
   }
 
-  const hasWillSet = isFunction(willSet);
-  const hasDidSet = isFunction(didSet);
+  if (isFunction(didSet)) {
+    Class.prototype[$$propDidSet][key] = didSet;
+  }
 
-  const $key = `$${key}`;
-  const $queue = `$${key}$Q`;
+  const $key = create$key(key);
+  const $queue = create$queue(key);
 
   defineProperty(Class.prototype, $key, {
     get: $keyGetter($key),
@@ -488,7 +645,10 @@ const defineValueProperty = (Class, key, {
       observablePropGetterWithDefaultValue(key, $key, value) :
       simpleGetter($key),
     set: writable ?
-      observablePropSetter(key, $key, $queue, false, set, hasWillSet, willSet, hasDidSet, didSet) :
+      observablePropSetter(
+        key, $key, $queue,
+        null, willSet
+      ) :
       readOnlyPropSetter($key),
     enumerable,
     configurable: false,

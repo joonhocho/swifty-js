@@ -91,6 +91,18 @@ describe('Swift', () => {
       lastFirst() {
         return `${this.lNCopy}, ${this.fNCopy}`;
       },
+      add1: {
+        value: 1,
+      },
+      add2: {
+        value: 2,
+      },
+      slowSum: {
+        onDidSet: ['add1', 'add2'],
+        get() {
+          return this.add1 + this.add2;
+        },
+      },
     });
   });
 
@@ -420,12 +432,6 @@ describe('Swift', () => {
 
 
   it('complex integer graph', () => {
-    p1.$willSet(['integer', 'integer8'], (i1, i8) => {
-      // console.log('willSet', i1, i8);
-    });
-    p1.$didSet(['integer', 'integer8'], (i1, i8) => {
-      // console.log('didSet', i1, i8);
-    });
     expect(p1.integer).to.equal(undefined);
 
     p1.integer = 1;
@@ -477,12 +483,45 @@ describe('Swift', () => {
     expect(p1.integer).to.equal(5);
     expect(p1.integer2).to.equal(10);
     expect(p1.integer4).to.equal(20);
-    expect(p1.integer8).to.equal(40);
+    expect(p1.integer8).to.equal(44);
 
     p1.integer = 6;
     expect(p1.integer).to.equal(6);
     expect(p1.integer2).to.equal(12);
     expect(p1.integer4).to.equal(24);
     expect(p1.integer8).to.equal(48);
+  });
+
+
+  it('commit at once for slow props', () => {
+    p1.$commitEnabled = false;
+
+    const sums = [];
+    p1.$didSet('slowSum', function() {
+      sums.push(this.slowSum);
+    });
+
+    expect(p1.slowSum).to.equal(3);
+
+    p1.add1 = 10;
+    expect(p1.add1).to.equal(10);
+    expect(p1.slowSum).to.equal(3);
+    expect(sums.length).to.equal(0);
+
+    p1.add2 = 7;
+    expect(p1.add2).to.equal(7);
+    expect(p1.slowSum).to.equal(3);
+    expect(sums.length).to.equal(0);
+
+    p1.add2 = 11;
+    expect(p1.add2).to.equal(11);
+    expect(p1.slowSum).to.equal(3);
+    expect(sums.length).to.equal(0);
+
+    p1.$commitEnabled = true;
+    p1.$commit();
+
+    expect(p1.slowSum).to.equal(21);
+    expect(sums).to.eql([21]);
   });
 });
