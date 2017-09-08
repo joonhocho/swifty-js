@@ -1,3 +1,4 @@
+/* eslint no-self-compare: 0 */
 const isPlainObject = (x) =>
   x !== null &&
   typeof x === 'object' &&
@@ -12,6 +13,27 @@ const isPromise = (x) =>
   x !== null &&
   typeof x === 'object' &&
   typeof x.then === 'function';
+
+
+const arrayRemove = (list, item) => {
+  const index = list.indexOf(item);
+  const found = index >= 0;
+  if (found) list.splice(index, 1);
+  return found;
+};
+
+const arrayIndexOfNaN = (list, item) => {
+  if (item !== item) {
+    // isNaN
+    for (let i = 0, il = list.length; i < il; i++) {
+      const aItem = list[i];
+      if (aItem !== aItem) return i;
+    }
+    return -1;
+  }
+
+  return list.indexOf(item);
+};
 
 
 const {defineProperty} = Object;
@@ -34,29 +56,20 @@ const defineHiddenConstants = (obj, values) =>
     })
   );
 
+const defineHiddenProperty = (obj, key, value) =>
+  defineProperty(obj, key, {
+    value,
+    enumerable: false,
+    writable: true,
+    configurable: true,
+  });
+
+
 const setOrDefineHiddenProperty = (obj, key, value) => {
   if (obj.hasOwnProperty(key)) {
     obj[key] = value;
   } else {
-    defineProperty(obj, key, {
-      value,
-      enumerable: false,
-      writable: true,
-      configurable: false,
-    });
-  }
-};
-
-const setOrDefineHiddenDeletableProperty = (obj, key, value) => {
-  if (obj.hasOwnProperty(key)) {
-    obj[key] = value;
-  } else {
-    defineProperty(obj, key, {
-      value,
-      enumerable: false,
-      writable: true,
-      configurable: true,
-    });
+    defineHiddenProperty(obj, key, value);
   }
 };
 
@@ -87,21 +100,26 @@ export {
   isPlainObject,
   isFunction,
   isPromise,
+  arrayRemove,
+  arrayIndexOfNaN,
   defineProperty,
   defineHiddenConstant,
   defineHiddenConstants,
+  defineHiddenProperty,
   setOrDefineHiddenProperty,
-  setOrDefineHiddenDeletableProperty,
   defineLazyProperty,
 };
 
 export default {
   isPlainObject,
+  isFunction,
   isPromise,
+  arrayRemove,
+  arrayIndexOfNaN,
   defineProperty,
   defineHiddenConstant,
   defineHiddenConstants,
+  defineHiddenProperty,
   setOrDefineHiddenProperty,
-  setOrDefineHiddenDeletableProperty,
   defineLazyProperty,
 };
