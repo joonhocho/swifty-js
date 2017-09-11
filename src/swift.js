@@ -18,6 +18,7 @@ const $initDesc = {
   configurable: false,
 };
 
+const defaultToJSON = (x) => x;
 
 const $$init = '$$init';
 const $$willSetMap = '$$willSetMap';
@@ -27,6 +28,7 @@ const $$didSetManyMap = '$$didSetManyMap';
 const $$onDidSet = '$$onDidSet';
 const $$onDidSetMany = '$$onDidSetMany';
 const $$enumerables = '$$enumerables';
+const $$toJSON = '$$toJSON';
 const $$defaultKeys = '$$defaultKeys';
 const $$initial = '$$initial';
 const $$pending = '$$pending';
@@ -328,6 +330,18 @@ function $set(values) {
 }
 
 
+function toJSON() {
+  const map = this[$$toJSON];
+  const keys = Object.keys(map);
+  const json = {};
+  for (let i = 0, il = keys.length; i < il; i++) {
+    const key = keys[i];
+    json[key] = map[key].call(this, this[key]);
+  }
+  return json;
+}
+
+
 const createNewClass = () => class Class {
   constructor(data) {
     defineProperty(this, $$init, $initDesc);
@@ -368,10 +382,12 @@ const create = (props) => {
     [$$propDidSet]: Object.create(null),
     [$$onDidSetMany]: Object.create(null),
     [$$onDidSet]: Object.create(null),
+    [$$toJSON]: Object.create(null),
     $willSet,
     $didSet,
     $commit,
     $set,
+    toJSON,
   });
 
   defineProperty(prototype, $$willSetMap, {
@@ -482,6 +498,7 @@ const defineMethod = (Class, key, {
   value,
   writable,
   enumerable,
+  toJSON,
 }) => {
   assertUndefined('onDidSet', onDidSet, 'method', key);
   assertUndefined('get', get, 'method', key);
@@ -492,6 +509,7 @@ const defineMethod = (Class, key, {
   assertUndefined('value', value, 'method', key);
   assertUndefined('writable', writable, 'method', key);
   assertUndefined('enumerable', enumerable, 'method', key);
+  assertUndefined('toJSON', toJSON, 'method', key);
 
   defineHiddenConstant(Class.prototype, key, method);
 };
@@ -508,6 +526,7 @@ const defineLazyProperty = (Class, key, {
   value,
   writable = true,
   enumerable = false,
+  toJSON,
 }) => {
   assertUndefined('onDidSet', onDidSet, 'lazy', key);
   assertUndefined('get', get, 'lazy', key);
@@ -516,6 +535,13 @@ const defineLazyProperty = (Class, key, {
   assertUndefined('didSet', didSet, 'lazy', key);
   assertUndefined('method', method, 'lazy', key);
   assertUndefined('value', value, 'lazy', key);
+
+  if (toJSON) {
+    if (!isFunction(toJSON)) {
+      toJSON = defaultToJSON;
+    }
+    Class.prototype[$$toJSON][key] = toJSON;
+  }
 
   const desc = {
     get() {
@@ -561,6 +587,7 @@ const defineGetSetProperty = (Class, key, {
   format,
   writable,
   enumerable = false,
+  toJSON,
 }) => {
   assertUndefined('lazy', lazy, 'get/set', key);
   assertUndefined('method', method, 'get/set', key);
@@ -569,6 +596,13 @@ const defineGetSetProperty = (Class, key, {
 
   if (isFunction(didSet)) {
     Class.prototype[$$propDidSet][key] = didSet;
+  }
+
+  if (toJSON) {
+    if (!isFunction(toJSON)) {
+      toJSON = defaultToJSON;
+    }
+    Class.prototype[$$toJSON][key] = toJSON;
   }
 
   if (onDidSet != null && onDidSet.length > 0) {
@@ -639,6 +673,7 @@ const defineValueProperty = (Class, key, {
   format,
   writable = true,
   enumerable = false,
+  toJSON,
 }) => {
   assertUndefined('onDidSet', onDidSet, 'value', key);
   assertUndefined('get', get, 'value', key);
@@ -653,6 +688,13 @@ const defineValueProperty = (Class, key, {
 
   if (isFunction(didSet)) {
     Class.prototype[$$propDidSet][key] = didSet;
+  }
+
+  if (toJSON) {
+    if (!isFunction(toJSON)) {
+      toJSON = defaultToJSON;
+    }
+    Class.prototype[$$toJSON][key] = toJSON;
   }
 
   const $key = create$key(key);

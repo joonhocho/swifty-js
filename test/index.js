@@ -23,6 +23,7 @@ describe('Swift', () => {
         get() {
           return `${this.fN} ${this.lN}`;
         },
+        toJSON: true,
       },
       lazyName: {
         lazy() {
@@ -36,6 +37,7 @@ describe('Swift', () => {
       },
       x: {
         value: 1,
+        toJSON: (x) => String(x),
       },
       xTimes2: {
         onDidSet: ['x'],
@@ -45,6 +47,7 @@ describe('Swift', () => {
         set(v) {
           this.x = v / 2;
         },
+        toJSON: (x2) => ({x2}),
       },
       integer: {
         willSet(v) {
@@ -110,6 +113,7 @@ describe('Swift', () => {
         format(v) {
           return v ? 'T' : 'F';
         },
+        toJSON: true,
       },
       date: {
         get() {
@@ -124,6 +128,7 @@ describe('Swift', () => {
         format(v) {
           return new Date(v);
         },
+        toJSON: (x) => x.getTime().toString(),
       },
     });
   });
@@ -614,5 +619,32 @@ describe('Swift', () => {
     expect(p1.date.getUTCDate()).to.equal(11);
     expect(p1.date instanceof Date).to.equal(true);
     expect(p1._timestamp).to.equal(942278400000);
+  });
+
+
+  it('toJSON', () => {
+    p1.date = 1000;
+    expect(p1.toJSON()).to.eql({
+      bool: 'F',
+      date: '1000',
+      name: 'F1 L1',
+      x: '1',
+      xTimes2: {
+        x2: 2,
+      },
+    });
+
+    p1.x = 4;
+    p1.bool = true;
+    p1.fN = 'F2';
+    expect(p1.toJSON()).to.eql({
+      bool: 'T',
+      date: '1000',
+      name: 'F2 L1',
+      x: '4',
+      xTimes2: {
+        x2: 8,
+      },
+    });
   });
 });
