@@ -622,7 +622,7 @@ describe('Swift', () => {
   });
 
 
-  it('toJSON', () => {
+  it('basic toJSON', () => {
     p1.date = 1000;
     expect(p1.toJSON()).to.eql({
       bool: 'F',
@@ -646,5 +646,32 @@ describe('Swift', () => {
         x2: 8,
       },
     });
+  });
+
+
+  it('custom toJSON', () => {
+    const C = create({
+      x: {
+        toJSON: true,
+      },
+      z: {
+      },
+      toJSON(o) {
+        if (o.x == null) {
+          delete o.x;
+        }
+        return Object.assign(o, this);
+      },
+    });
+    const c1 = new C();
+
+    expect(c1.toJSON()).to.eql({});
+    c1.x = 3;
+    expect(c1.toJSON()).to.eql({x: 3});
+    c1.x = null;
+    expect(c1.toJSON()).to.eql({});
+    c1.z = 2;
+    c1.y = 3;
+    expect(c1.toJSON()).to.eql({y: 3});
   });
 });
