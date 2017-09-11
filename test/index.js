@@ -103,6 +103,28 @@ describe('Swift', () => {
           return this.add1 + this.add2;
         },
       },
+      bool: {
+        parse(v) {
+          return Boolean(v);
+        },
+        format(v) {
+          return v ? 'T' : 'F';
+        },
+      },
+      date: {
+        get() {
+          return this._timestamp;
+        },
+        set(x) {
+          this._timestamp = x;
+        },
+        parse(v) {
+          return new Date(v).getTime();
+        },
+        format(v) {
+          return new Date(v);
+        },
+      },
     });
   });
 
@@ -523,5 +545,74 @@ describe('Swift', () => {
 
     expect(p1.slowSum).to.equal(21);
     expect(sums).to.eql([21]);
+  });
+
+
+  it('$set sets multiple values at once', () => {
+    const sums = [];
+    p1.$didSet('slowSum', function() {
+      sums.push(this.slowSum);
+    });
+
+    const args = [];
+    p1.$didSet(['add1', 'add2'], function(add1, add2) {
+      args.push(add1, add2, this.add1, this.add2);
+    });
+
+    expect(p1.slowSum).to.equal(3);
+
+    p1.$set({
+      add1: 10,
+      add2: 11,
+    });
+
+    expect(p1.add1).to.equal(10);
+    expect(p1.add2).to.equal(11);
+    expect(p1.slowSum).to.equal(21);
+    expect(sums).to.eql([21]);
+    expect(args).to.eql([1, 2, 10, 11]);
+  });
+
+
+  it('parse sanitizes set value. format formats get value', () => {
+    const p2 = new Person({bool: 3});
+    expect(p2.bool).to.equal('T');
+    expect(p1.bool).to.equal('F');
+    // expect(p1.hasOwnProperty('bool')).to.equal(true);
+    p1.bool = 1;
+    p2.bool = '';
+    expect(p1.bool).to.equal('T');
+    expect(p2.bool).to.equal('F');
+    p1.bool = 0;
+    expect(p1.bool).to.equal('F');
+    p1.bool = {};
+    expect(p1.bool).to.equal('T');
+    p1.bool = null;
+    expect(p1.bool).to.equal('F');
+    p1.bool = true;
+    expect(p1.bool).to.equal('T');
+    p1.bool = NaN;
+    expect(p1.bool).to.equal('F');
+    p1.bool = undefined;
+    expect(p1.bool).to.equal('F');
+  });
+
+
+  it('parse sanitizes set value. format formats get value. for get/set', () => {
+    expect(p1.date.getTime()).to.be.NaN;
+    expect(p1.date instanceof Date).to.equal(true);
+    expect(p1._timestamp).to.be.NaN;
+
+    p1.date = 0;
+    expect(p1.date.getTime()).to.equal(0);
+    expect(p1.date instanceof Date).to.equal(true);
+    expect(p1._timestamp).to.equal(0);
+
+    p1.date = '1999-11-11';
+    expect(p1.date.getUTCFullYear()).to.equal(1999);
+    expect(p1.date.getUTCMonth()).to.equal(10);
+    expect(p1.date.getUTCDate()).to.equal(11);
+    expect(p1.date instanceof Date).to.equal(true);
+    expect(p1._timestamp).to.equal(942278400000);
   });
 });

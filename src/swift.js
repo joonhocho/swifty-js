@@ -129,23 +129,38 @@ const $queueSetter = ($queue) => function(val) {
   defineHiddenProperty(this, $queue, val);
 };
 
-const observablePropGetterWithGetter = (key, $key, get) => function() {
-  if (this.hasOwnProperty($key)) {
-    return this[$key];
-  }
-  return this[key] = get.call(this);
-};
+const observablePropGetterWithGetter = (key, $key, get, format) =>
+  isFunction(format) ?
+  function() {
+    return format(this.hasOwnProperty($key) ?
+      this[$key] :
+      (this[key] = get.call(this))
+    );
+  } :
+  function() {
+    return this.hasOwnProperty($key) ?
+      this[$key] :
+      (this[key] = get.call(this));
+  };
 
-const observablePropGetterWithDefaultValue = (key, $key, value) => function() {
-  if (this.hasOwnProperty($key)) {
-    return this[$key];
-  }
-  return this[key] = value;
-};
+const observablePropGetterWithDefaultValue = (key, $key, value, format) =>
+  isFunction(format) ?
+  function() {
+    return format(this.hasOwnProperty($key) ?
+      this[$key] :
+      (this[key] = value)
+    );
+  } :
+  function() {
+    return this.hasOwnProperty($key) ?
+      this[$key] :
+      (this[key] = value);
+  };
 
-const simpleGetter = ($key) => function() {
-  return this[$key];
-};
+const simpleGetter = ($key, format) =>
+  isFunction(format) ?
+  function() { return format(this[$key]); } :
+  function() { return this[$key]; };
 
 const readOnlyPropSetter = ($key) => function(val) {
   if (this[$$init]) {
@@ -153,11 +168,14 @@ const readOnlyPropSetter = ($key) => function(val) {
   }
 };
 
-const observablePropSetter = (key, $key, $queue, set, willSet) => {
+const observablePropSetter = (key, $key, $queue, set, willSet, parse) => {
+  const hasParse = isFunction(parse);
   const hasSet = isFunction(set);
   const hasWillSet = isFunction(willSet);
 
   return function(newValue) {
+    if (hasParse) newValue = parse(newValue);
+
     const queue = this[$queue];
     if (arrayIndexOfNaN(queue, newValue) >= 0) {
       // already setting this value in the stack
@@ -301,6 +319,15 @@ function $commit() {
 }
 
 
+function $set(values) {
+  const prev$commitEnabled = this[$commitEnabled];
+  this[$commitEnabled] = false;
+  Object.assign(this, values);
+  this[$commitEnabled] = prev$commitEnabled;
+  this.$commit();
+}
+
+
 const createNewClass = () => class Class {
   constructor(data) {
     defineProperty(this, $$init, $initDesc);
@@ -344,6 +371,7 @@ const create = (props) => {
     $willSet,
     $didSet,
     $commit,
+    $set,
   });
 
   defineProperty(prototype, $$willSetMap, {
@@ -529,6 +557,8 @@ const defineGetSetProperty = (Class, key, {
   lazy,
   method,
   value,
+  parse,
+  format,
   writable,
   enumerable = false,
 }) => {
@@ -578,11 +608,11 @@ const defineGetSetProperty = (Class, key, {
 
   const desc = {
     get: isFunction(get) ?
-      observablePropGetterWithGetter(key, $key, get) :
-      simpleGetter($key),
+      observablePropGetterWithGetter(key, $key, get, format) :
+      simpleGetter($key, format),
     set: observablePropSetter(
       key, $key, $queue,
-      set, willSet
+      set, willSet, parse
     ),
     enumerable,
     configurable: false,
@@ -605,6 +635,8 @@ const defineValueProperty = (Class, key, {
   lazy,
   method,
   value,
+  parse,
+  format,
   writable = true,
   enumerable = false,
 }) => {
@@ -642,12 +674,12 @@ const defineValueProperty = (Class, key, {
 
   const desc = {
     get: hasDefaultValue ?
-      observablePropGetterWithDefaultValue(key, $key, value) :
-      simpleGetter($key),
+      observablePropGetterWithDefaultValue(key, $key, value, format) :
+      simpleGetter($key, format),
     set: writable ?
       observablePropSetter(
         key, $key, $queue,
-        null, willSet
+        null, willSet, parse
       ) :
       readOnlyPropSetter($key),
     enumerable,
