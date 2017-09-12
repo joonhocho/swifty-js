@@ -48,12 +48,23 @@ const create$queue = (key) => `Q$${key}`;
 
 let nextFnId = 1;
 
+const createOneTimeCallback = (fn) => {
+  let called = false;
+  return () => {
+    if (!called) {
+      called = true;
+      fn();
+      fn = null;
+    }
+  };
+};
+
 const define$willSet = (mapKey, manyMapKey) => function(keys, fn) {
   if (typeof keys === 'string' || keys.length === 1) {
     const map = this[mapKey];
     const key = typeof keys === 'string' ? keys : keys[0];
     (map[key] || (map[key] = [])).push(fn);
-    return () => arrayRemove(map[key], fn);
+    return createOneTimeCallback(() => arrayRemove(map[key], fn));
   }
 
   if (manyMapKey) {
@@ -67,11 +78,11 @@ const define$willSet = (mapKey, manyMapKey) => function(keys, fn) {
       (map[key] || (map[key] = [])).push(fn);
     }
 
-    return () => {
+    return createOneTimeCallback(() => {
       for (let i = 0, il = keys.length; i < il; i++) {
         arrayRemove(map[keys[i]], fn);
       }
-    };
+    });
   }
 
   throw new Error('multiple keys is not supported');
@@ -390,13 +401,13 @@ function $set(values) {
 
 function $didChange(fn) {
   this[$$didChange].push(fn);
-  return () => arrayRemove(this[$$didChange], fn);
+  return createOneTimeCallback(() => arrayRemove(this[$$didChange], fn));
 }
 
 
 function $didChangeAsync(fn) {
   this[$$didChangeAsync].push(fn);
-  return () => arrayRemove(this[$$didChangeAsync], fn);
+  return createOneTimeCallback(() => arrayRemove(this[$$didChangeAsync], fn));
 }
 
 function toJSON() {
