@@ -711,4 +711,30 @@ describe('Swift', () => {
     p1.x = 2;
     expect(args).to.eql([]);
   });
+
+
+  it('$didChangeAsync is called asyncly after any changes', (done) => {
+    const args = [];
+    const off = p1.$didChangeAsync(function(initial, changed) {
+      args.push(changed, this);
+    });
+
+    p1.x = 3;
+
+    setTimeout(() => {
+      expect(args).to.eql([{
+        x: 3,
+        xTimes2: 6,
+      }, p1]);
+
+      args.length = 0;
+
+      off();
+      p1.x = 2;
+      setTimeout(() => {
+        expect(args).to.eql([]);
+        done();
+      }, 30);
+    }, 30);
+  });
 });

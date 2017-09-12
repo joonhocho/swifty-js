@@ -74,6 +74,21 @@ const setOrDefineHiddenProperty = (obj, key, value) => {
 };
 
 
+const defineLazyHiddenPrototypeProperty = (prototype, name, get) =>
+  defineProperty(prototype, name, {
+    get,
+    set(v) {
+      defineHiddenProperty(this, name, v);
+    },
+    enumerable: false,
+    configurable: false,
+  });
+
+const defineLazyHiddenPrototypeProperties = (prototype, values) =>
+  Object.keys(values).forEach((key) =>
+    defineLazyHiddenPrototypeProperty(prototype, key, values[key])
+  );
+
 const defineLazyProperty = (obj, name, fn, {
   writable = true,
   enumerable = true,
@@ -106,6 +121,8 @@ export {
   defineHiddenConstant,
   defineHiddenConstants,
   defineHiddenProperty,
+  defineLazyHiddenPrototypeProperty,
+  defineLazyHiddenPrototypeProperties,
   setOrDefineHiddenProperty,
   defineLazyProperty,
 };
@@ -120,6 +137,8 @@ export default {
   defineHiddenConstant,
   defineHiddenConstants,
   defineHiddenProperty,
+  defineLazyHiddenPrototypeProperty,
+  defineLazyHiddenPrototypeProperties,
   setOrDefineHiddenProperty,
   defineLazyProperty,
 };

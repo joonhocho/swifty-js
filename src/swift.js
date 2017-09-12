@@ -8,6 +8,7 @@ import {
   defineHiddenConstant,
   defineHiddenConstants,
   defineHiddenProperty,
+  defineLazyHiddenPrototypeProperties,
 } from './util';
 
 
@@ -22,7 +23,11 @@ const defaultToJSON = (x) => x;
 
 const $$defaultKeys = '$$defaultKeys';
 const $$didChange = '$$didChange';
+const $$didChangeAsync = '$$didChangeAsync';
+const $$didChangeAsyncTid = '$$didChangeATID';
 const $$didSetManyMap = '$$didSetManyMap';
+const $$didChangeAsyncInitial = '$$didChangeAsyncInitial';
+const $$didChangeAsyncPending = '$$didChangeAsyncPending';
 const $$didSetMap = '$$didSetMap';
 const $$enumerables = '$$enumerables';
 const $$fnIdKey = '$$ID';
@@ -86,31 +91,38 @@ const $$willSetMapGetter = define$map($$willSetMap);
 const $$didSetMapGetter = define$map($$didSetMap);
 const $$didSetManyMapGetter = define$map($$didSetManyMap);
 
-const $$didChangeGetter = function() {
+const createPrimitiveValueGetter = (key, val) => function() {
+  defineHiddenProperty(this, key, val);
+  return val;
+};
+const createArrayValueGetter = (key) => function() {
   const val = [];
-  defineHiddenProperty(this, $$didChange, val);
+  defineHiddenProperty(this, key, val);
   return val;
 };
-const $$initialGetter = function() {
+const createNullMapGetter = (key) => function() {
   const val = Object.create(null);
-  defineHiddenProperty(this, $$initial, val);
+  defineHiddenProperty(this, key, val);
   return val;
 };
-const $$pendingGetter = function() {
-  const val = Object.create(null);
-  defineHiddenProperty(this, $$pending, val);
-  return val;
-};
-const $$updatingGetter = function() {
-  const val = false;
-  defineHiddenProperty(this, $$updating, val);
-  return val;
-};
-const $commitEnabledGetter = function() {
-  const val = true;
-  defineHiddenProperty(this, $commitEnabled, val);
-  return val;
-};
+
+const $$didChangeGetter = createArrayValueGetter($$didChange);
+
+const $$didChangeAsyncGetter = createArrayValueGetter($$didChangeAsync);
+
+const $$didChangeAsyncTidGetter = createPrimitiveValueGetter($$didChangeAsyncTid, null);
+
+const $$didChangeAsyncInitialGetter = createNullMapGetter($$didChangeAsyncInitial);
+
+const $$didChangeAsyncPendingGetter = createNullMapGetter($$didChangeAsyncPending);
+
+const $$initialGetter = createNullMapGetter($$initial);
+
+const $$pendingGetter = createNullMapGetter($$pending);
+
+const $$updatingGetter = createPrimitiveValueGetter($$updating, false);
+
+const $commitEnabledGetter = createPrimitiveValueGetter($commitEnabled, true);
 
 
 const computeSetter = (key, get) => function() {
@@ -236,7 +248,7 @@ const observablePropSetter = (key, $key, $queue, set, willSet, parse) => {
 
     queue.length = 0;
 
-    if (initialUpdate && this[$commitEnabled]) {
+    if (initialUpdate && this.$commitEnabled) {
       this.$commit();
     }
   };
@@ -332,19 +344,46 @@ function $commit() {
   }
 
   if (changed) {
-    const fns = this[$$didChange].slice();
-    for (let i = 0, il = fns.length; i < il; i++) {
-      fns[i].call(this, initial, pending);
+    const fns = this[$$didChange];
+    if (fns.length > 0) {
+      const copy = fns.slice();
+      for (let i = 0, il = copy.length; i < il; i++) {
+        copy[i].call(this, initial, pending);
+      }
     }
+
+    const asyncFns = this[$$didChangeAsync];
+    if (asyncFns.length > 0) {
+      if (this[$$didChangeAsyncTid] == null) {
+        this[$$didChangeAsyncInitial] = initial;
+        this[$$didChangeAsyncPending] = pending;
+        this[$$didChangeAsyncTid] = setTimeout(
+          callDidChangeAsync.bind(this, asyncFns.slice()), 0
+        );
+      } else {
+        this[$$didChangeAsyncInitial] = Object.assign(initial, this[$$didChangeAsyncInitial]);
+        this[$$didChangeAsyncPending] = Object.assign(this[$$didChangeAsyncPending], pending);
+      }
+    }
+  }
+}
+
+function callDidChangeAsync(fns) {
+  this[$$didChangeAsyncTid] = null;
+  const initial = this[$$didChangeAsyncInitial];
+  const pending = this[$$didChangeAsyncPending];
+  this[$$didChangeAsyncInitial] = this[$$didChangeAsyncPending] = null;
+  for (let i = 0, il = fns.length; i < il; i++) {
+    fns[i].call(this, initial, pending);
   }
 }
 
 
 function $set(values) {
-  const prev$commitEnabled = this[$commitEnabled];
-  this[$commitEnabled] = false;
+  const prev$commitEnabled = this.$commitEnabled;
+  this.$commitEnabled = false;
   Object.assign(this, values);
-  this[$commitEnabled] = prev$commitEnabled;
+  this.$commitEnabled = prev$commitEnabled;
   this.$commit();
 }
 
@@ -352,6 +391,12 @@ function $set(values) {
 function $didChange(fn) {
   this[$$didChange].push(fn);
   return () => arrayRemove(this[$$didChange], fn);
+}
+
+
+function $didChangeAsync(fn) {
+  this[$$didChangeAsync].push(fn);
+  return () => arrayRemove(this[$$didChangeAsync], fn);
 }
 
 function toJSON() {
@@ -399,10 +444,15 @@ const createNewClass = () => class Class {
 
 const reservedKeys = {
   $commit: 1,
+  $commitEnabled: 1,
   $didSet: 1,
   $set: 1,
   $willSet: 1,
   [$$defaultKeys]: 1,
+  [$$didChangeAsyncInitial]: 1,
+  [$$didChangeAsyncPending]: 1,
+  [$$didChangeAsyncTid]: 1,
+  [$$didChangeAsync]: 1,
   [$$didChange]: 1,
   [$$didSetManyMap]: 1,
   [$$didSetMap]: 1,
@@ -418,7 +468,6 @@ const reservedKeys = {
   [$$toJSON]: 1,
   [$$updating]: 1,
   [$$willSetMap]: 1,
-  [$commitEnabled]: 1,
   toJSON: 1,
 };
 
@@ -437,59 +486,28 @@ const create = (props) => {
     [$$toJSON]: Object.create(null),
     $commit,
     $didChange,
+    $didChangeAsync,
     $didSet,
     $set,
     $willSet,
     toJSON: createToJSON(props.toJSON),
   });
 
-  defineProperty(prototype, $$willSetMap, {
-    get: $$willSetMapGetter,
-    enumerable: false,
-    configurable: false,
+  defineLazyHiddenPrototypeProperties(prototype, {
+    $commitEnabled: $commitEnabledGetter,
+    [$$didChangeAsyncInitial]: $$didChangeAsyncInitialGetter,
+    [$$didChangeAsyncPending]: $$didChangeAsyncPendingGetter,
+    [$$didChangeAsyncTid]: $$didChangeAsyncTidGetter,
+    [$$didChangeAsync]: $$didChangeAsyncGetter,
+    [$$didChange]: $$didChangeGetter,
+    [$$didSetManyMap]: $$didSetManyMapGetter,
+    [$$didSetMap]: $$didSetMapGetter,
+    [$$initial]: $$initialGetter,
+    [$$pending]: $$pendingGetter,
+    [$$updating]: $$updatingGetter,
+    [$$willSetMap]: $$willSetMapGetter,
   });
 
-  defineProperty(prototype, $$didSetMap, {
-    get: $$didSetMapGetter,
-    enumerable: false,
-    configurable: false,
-  });
-
-  defineProperty(prototype, $$didSetManyMap, {
-    get: $$didSetManyMapGetter,
-    enumerable: false,
-    configurable: false,
-  });
-
-  defineProperty(prototype, $$didChange, {
-    get: $$didChangeGetter,
-    enumerable: false,
-    configurable: false,
-  });
-
-  defineProperty(prototype, $$initial, {
-    get: $$initialGetter,
-    enumerable: false,
-    configurable: false,
-  });
-
-  defineProperty(prototype, $$pending, {
-    get: $$pendingGetter,
-    enumerable: false,
-    configurable: false,
-  });
-
-  defineProperty(prototype, $$updating, {
-    get: $$updatingGetter,
-    enumerable: false,
-    configurable: false,
-  });
-
-  defineProperty(prototype, $commitEnabled, {
-    get: $commitEnabledGetter,
-    enumerable: false,
-    configurable: false,
-  });
 
   const propKeys = Object.getOwnPropertyNames(props);
 
@@ -561,7 +579,7 @@ const defineMethod = (Class, key, {
   value,
   writable,
   enumerable,
-  toJSON,
+  toJSON, // eslint-disable-line no-shadow
 }) => {
   if (key === 'toJSON') return;
 
@@ -591,7 +609,7 @@ const defineLazyProperty = (Class, key, {
   value,
   writable = true,
   enumerable = false,
-  toJSON,
+  toJSON, // eslint-disable-line no-shadow
 }) => {
   assertUndefined('onDidSet', onDidSet, 'lazy', key);
   assertUndefined('get', get, 'lazy', key);
@@ -652,7 +670,7 @@ const defineGetSetProperty = (Class, key, {
   format,
   writable,
   enumerable = false,
-  toJSON,
+  toJSON, // eslint-disable-line no-shadow
 }) => {
   assertUndefined('lazy', lazy, 'get/set', key);
   assertUndefined('method', method, 'get/set', key);
@@ -738,7 +756,7 @@ const defineValueProperty = (Class, key, {
   format,
   writable = true,
   enumerable = false,
-  toJSON,
+  toJSON, // eslint-disable-line no-shadow
 }) => {
   assertUndefined('onDidSet', onDidSet, 'value', key);
   assertUndefined('get', get, 'value', key);
