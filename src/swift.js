@@ -400,14 +400,16 @@ function $set(values) {
 
 
 function $didChange(fn) {
-  this[$$didChange].push(fn);
-  return createOneTimeCallback(() => arrayRemove(this[$$didChange], fn));
+  const arr = this[$$didChange];
+  arr.push(fn);
+  return createOneTimeCallback(() => arrayRemove(arr, fn));
 }
 
 
 function $didChangeAsync(fn) {
-  this[$$didChangeAsync].push(fn);
-  return createOneTimeCallback(() => arrayRemove(this[$$didChangeAsync], fn));
+  const arr = this[$$didChangeAsync];
+  arr.push(fn);
+  return createOneTimeCallback(() => arrayRemove(arr, fn));
 }
 
 function toJSON() {
