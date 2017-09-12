@@ -253,7 +253,7 @@ describe('Swift', () => {
   it('$willSet on basic property, fN', () => {
     const args = [];
 
-    p1.$willSet(['fN'], function(next) {
+    const off = p1.$willSet(['fN'], function(next) {
       expect(next).to.not.equal(this.fN);
       args.push([this.fN, next]);
     });
@@ -273,6 +273,11 @@ describe('Swift', () => {
     // called
     p1.fN = 'F3';
     expect(args).to.eql([['F1', 'F2'], ['F2', 'F3']]);
+
+    off();
+    p1.fN = 'F4';
+    expect(args).to.eql([['F1', 'F2'], ['F2', 'F3']]);
+
   });
 
 
@@ -305,7 +310,7 @@ describe('Swift', () => {
   it('$didSet on basic property, fN', () => {
     const args = [];
 
-    p1.$didSet(['fN'], function(prev) {
+    const off = p1.$didSet(['fN'], function(prev) {
       expect(prev).to.not.equal(this.fN);
       args.push([prev, this.fN]);
     });
@@ -324,6 +329,10 @@ describe('Swift', () => {
 
     // called
     p1.fN = 'F3';
+    expect(args).to.eql([['F1', 'F2'], ['F2', 'F3']]);
+
+    off();
+    p1.fN = 'F4';
     expect(args).to.eql([['F1', 'F2'], ['F2', 'F3']]);
   });
 
@@ -575,7 +584,13 @@ describe('Swift', () => {
     expect(p1.add2).to.equal(11);
     expect(p1.slowSum).to.equal(21);
     expect(sums).to.eql([21]);
-    expect(args).to.eql([1, 2, 10, 11]);
+    expect(args).to.eql([{
+      add1: 1,
+      add2: 2,
+    }, {
+      add1: 10,
+      add2: 11,
+    }, 10, 11]);
   });
 
 
@@ -673,5 +688,27 @@ describe('Swift', () => {
     c1.z = 2;
     c1.y = 3;
     expect(c1.toJSON()).to.eql({y: 3});
+  });
+
+
+  it('$didChange is called after any changes', () => {
+    const args = [];
+    const off = p1.$didChange(function(initial, changed) {
+      args.push(changed, this);
+    });
+
+    p1.x = 3;
+    expect(args).to.eql([{
+      xTimes2: 6,
+    }, p1,
+    {
+      x: 3,
+    }, p1]);
+
+    args.length = 0;
+    off();
+
+    p1.x = 2;
+    expect(args).to.eql([]);
   });
 });

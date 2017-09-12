@@ -20,22 +20,23 @@ const $initDesc = {
 
 const defaultToJSON = (x) => x;
 
-const $$init = '$$init';
-const $$willSetMap = '$$willSetMap';
-const $$propDidSet = '$$propDidSet';
-const $$didSetMap = '$$didSetMap';
-const $$didSetManyMap = '$$didSetManyMap';
-const $$onDidSet = '$$onDidSet';
-const $$onDidSetMany = '$$onDidSetMany';
-const $$enumerables = '$$enumerables';
-const $$toJSON = '$$toJSON';
 const $$defaultKeys = '$$defaultKeys';
-const $$initial = '$$initial';
-const $$pending = '$$pending';
-const $$updating = '$$updating';
-const $commitEnabled = '$commitEnabled';
+const $$didChange = '$$didChange';
+const $$didSetManyMap = '$$didSetManyMap';
+const $$didSetMap = '$$didSetMap';
+const $$enumerables = '$$enumerables';
 const $$fnIdKey = '$$ID';
 const $$fnKeys = '$$KEYS';
+const $$init = '$$init';
+const $$initial = '$$initial';
+const $$onDidSet = '$$onDidSet';
+const $$onDidSetMany = '$$onDidSetMany';
+const $$pending = '$$pending';
+const $$propDidSet = '$$propDidSet';
+const $$toJSON = '$$toJSON';
+const $$updating = '$$updating';
+const $$willSetMap = '$$willSetMap';
+const $commitEnabled = '$commitEnabled';
 
 const create$key = (key) => `K$${key}`;
 const create$queue = (key) => `Q$${key}`;
@@ -85,6 +86,11 @@ const $$willSetMapGetter = define$map($$willSetMap);
 const $$didSetMapGetter = define$map($$didSetMap);
 const $$didSetManyMapGetter = define$map($$didSetManyMap);
 
+const $$didChangeGetter = function() {
+  const val = [];
+  defineHiddenProperty(this, $$didChange, val);
+  return val;
+};
 const $$initialGetter = function() {
   const val = Object.create(null);
   defineHiddenProperty(this, $$initial, val);
@@ -255,11 +261,20 @@ function $commit() {
 
   let onDidSetManyFns = [];
   let didSetManyFns = [];
+  let changed = false;
 
   for (let i = 0, il = keys.length; i < il; i++) {
     const key = keys[i];
     const nextVal = pending[key];
     const val = initial[key];
+
+    if (nextVal === val) {
+      delete pending[key];
+      delete initial[key];
+      continue;
+    }
+
+    changed = true;
 
     const didSet = propDidSetMap[key];
     if (didSet) {
@@ -299,7 +314,7 @@ function $commit() {
       const fnId = fn[$$fnIdKey];
       if (!fnIdMap[fnId]) {
         fnIdMap[fnId] = true;
-        fn.call(this);
+        fn.call(this, initial, pending);
       }
     }
   }
@@ -311,11 +326,15 @@ function $commit() {
       const fnId = fn[$$fnIdKey];
       if (!fnIdMap[fnId]) {
         fnIdMap[fnId] = true;
-        const args = fn[$$fnKeys].map(
-          (k) => (k in initial) ? initial[k] : this[k]
-        );
-        fn.apply(this, args);
+        fn.call(this, initial, pending);
       }
+    }
+  }
+
+  if (changed) {
+    const fns = this[$$didChange].slice();
+    for (let i = 0, il = fns.length; i < il; i++) {
+      fns[i].call(this, initial, pending);
     }
   }
 }
@@ -329,6 +348,11 @@ function $set(values) {
   this.$commit();
 }
 
+
+function $didChange(fn) {
+  this[$$didChange].push(fn);
+  return () => arrayRemove(this[$$didChange], fn);
+}
 
 function toJSON() {
   const map = this[$$toJSON];
@@ -379,6 +403,7 @@ const reservedKeys = {
   $set: 1,
   $willSet: 1,
   [$$defaultKeys]: 1,
+  [$$didChange]: 1,
   [$$didSetManyMap]: 1,
   [$$didSetMap]: 1,
   [$$enumerables]: 1,
@@ -410,10 +435,11 @@ const create = (props) => {
     [$$onDidSetMany]: Object.create(null),
     [$$onDidSet]: Object.create(null),
     [$$toJSON]: Object.create(null),
-    $willSet,
-    $didSet,
     $commit,
+    $didChange,
+    $didSet,
     $set,
+    $willSet,
     toJSON: createToJSON(props.toJSON),
   });
 
@@ -431,6 +457,12 @@ const create = (props) => {
 
   defineProperty(prototype, $$didSetManyMap, {
     get: $$didSetManyMapGetter,
+    enumerable: false,
+    configurable: false,
+  });
+
+  defineProperty(prototype, $$didChange, {
+    get: $$didChangeGetter,
     enumerable: false,
     configurable: false,
   });
