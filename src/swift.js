@@ -162,36 +162,36 @@ const $queueSetter = ($queue) => function(val) {
 
 const observablePropGetterWithGetter = (key, $key, get, format) =>
   isFunction(format) ?
-  function() {
-    return format(this.hasOwnProperty($key) ?
-      this[$key] :
-      (this[key] = get.call(this))
-    );
-  } :
-  function() {
-    return this.hasOwnProperty($key) ?
-      this[$key] :
-      (this[key] = get.call(this));
-  };
+    function() {
+      return format(this.hasOwnProperty($key) ?
+        this[$key] :
+        (this[key] = get.call(this))
+      );
+    } :
+    function() {
+      return this.hasOwnProperty($key) ?
+        this[$key] :
+        (this[key] = get.call(this));
+    };
 
 const observablePropGetterWithDefaultValue = (key, $key, value, format) =>
   isFunction(format) ?
-  function() {
-    return format(this.hasOwnProperty($key) ?
-      this[$key] :
-      (this[key] = value)
-    );
-  } :
-  function() {
-    return this.hasOwnProperty($key) ?
-      this[$key] :
-      (this[key] = value);
-  };
+    function() {
+      return format(this.hasOwnProperty($key) ?
+        this[$key] :
+        (this[key] = value)
+      );
+    } :
+    function() {
+      return this.hasOwnProperty($key) ?
+        this[$key] :
+        (this[key] = value);
+    };
 
 const simpleGetter = ($key, format) =>
   isFunction(format) ?
-  function() { return format(this[$key]); } :
-  function() { return this[$key]; };
+    function() { return format(this[$key]); } :
+    function() { return this[$key]; };
 
 const readOnlyPropSetter = ($key) => function(val) {
   if (this[$$init]) {
@@ -199,8 +199,9 @@ const readOnlyPropSetter = ($key) => function(val) {
   }
 };
 
-const observablePropSetter = (key, $key, $queue, set, willSet, parse) => {
+const observablePropSetter = (key, $key, $queue, set, willSet, parse, equal) => {
   const hasParse = isFunction(parse);
+  const hasEqual = isFunction(equal);
   const hasSet = isFunction(set);
   const hasWillSet = isFunction(willSet);
 
@@ -235,7 +236,9 @@ const observablePropSetter = (key, $key, $queue, set, willSet, parse) => {
       const nextVal = queue[i];
       const val = this[$key];
 
-      if (nextVal === val) continue;
+      if (hasEqual ? equal(nextVal, val) : (nextVal === val)) {
+        continue;
+      }
 
       if (hasWillSet) {
         willSet.call(this, nextVal, val);
@@ -680,6 +683,7 @@ const defineGetSetProperty = (Class, key, {
   method,
   value,
   parse,
+  equal,
   format,
   writable,
   enumerable = false,
@@ -742,7 +746,7 @@ const defineGetSetProperty = (Class, key, {
       simpleGetter($key, format),
     set: observablePropSetter(
       key, $key, $queue,
-      set, willSet, parse
+      set, willSet, parse, equal
     ),
     enumerable,
     configurable: false,
@@ -766,6 +770,7 @@ const defineValueProperty = (Class, key, {
   method,
   value,
   parse,
+  equal,
   format,
   writable = true,
   enumerable = false,
@@ -817,7 +822,7 @@ const defineValueProperty = (Class, key, {
     set: writable ?
       observablePropSetter(
         key, $key, $queue,
-        null, willSet, parse
+        null, willSet, parse, equal
       ) :
       readOnlyPropSetter($key),
     enumerable,

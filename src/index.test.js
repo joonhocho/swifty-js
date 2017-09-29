@@ -1,12 +1,11 @@
 /* eslint no-unused-expressions: 0, max-statements: 0 */
-import {expect} from 'chai';
-import create from '../src';
+import create from './index';
 
 describe('Swift', () => {
   let Person;
   let p1;
 
-  before(() => {
+  beforeAll(() => {
     Person = create({
       fN: {
         willSet(newValue) {
@@ -130,6 +129,13 @@ describe('Swift', () => {
         },
         toJSON: (x) => x.getTime().toString(),
       },
+      size: {
+        equal: (a, b) => {
+          return a && b &&
+            a.w === b.w &&
+            a.h === b.h;
+        },
+      },
     });
   });
 
@@ -143,7 +149,7 @@ describe('Swift', () => {
 
 
   it('get keys', () => {
-    expect(Object.keys(p1).sort()).to.eql([
+    expect(Object.keys(p1).sort()).toEqual([
       'fNCopy',
       'inKeys',
       'lNCopy',
@@ -152,101 +158,101 @@ describe('Swift', () => {
 
 
   it('sets default values', () => {
-    expect(p1.x).to.equal(1);
-    expect(p1.xTimes2).to.equal(2);
-    expect(p1.inKeys).to.equal('delta');
+    expect(p1.x).toBe(1);
+    expect(p1.xTimes2).toBe(2);
+    expect(p1.inKeys).toBe('delta');
   });
 
 
   it('default values are overridable on init', () => {
     const p2 = new Person({x: 2, inKeys: null});
-    expect(p2.x).to.equal(2);
-    expect(p2.xTimes2).to.equal(4);
-    expect(p2.inKeys).to.equal(null);
+    expect(p2.x).toBe(2);
+    expect(p2.xTimes2).toBe(4);
+    expect(p2.inKeys).toBe(null);
   });
 
 
   it('default values can be overriden by assignment', () => {
-    expect(p1.x).to.equal(1);
+    expect(p1.x).toBe(1);
     p1.x = 3;
-    expect(p1.x).to.equal(3);
+    expect(p1.x).toBe(3);
   });
 
 
   it('get/set property', () => {
-    expect(p1.x).to.equal(1);
-    expect(p1.xTimes2).to.equal(2);
+    expect(p1.x).toBe(1);
+    expect(p1.xTimes2).toBe(2);
 
     p1.x = 2;
-    expect(p1.x).to.equal(2);
-    expect(p1.xTimes2).to.equal(4);
+    expect(p1.x).toBe(2);
+    expect(p1.xTimes2).toBe(4);
 
     p1.xTimes2 = 6;
-    expect(p1.x).to.equal(3);
-    expect(p1.xTimes2).to.equal(6);
+    expect(p1.x).toBe(3);
+    expect(p1.xTimes2).toBe(6);
   });
 
 
   it('read-only property', () => {
-    expect(p1.readOnly).to.equal(undefined);
+    expect(p1.readOnly).toBe(undefined);
     p1.readOnly = 3;
-    expect(p1.readOnly).to.equal(undefined);
+    expect(p1.readOnly).toBe(undefined);
   });
 
 
   it('read-only property set', () => {
     const p2 = new Person({readOnly: 2});
-    expect(p2.readOnly).to.equal(2);
+    expect(p2.readOnly).toBe(2);
     p2.readOnly = 3;
-    expect(p2.readOnly).to.equal(2);
+    expect(p2.readOnly).toBe(2);
   });
 
 
   it('simple method', () => {
-    expect(p1.lastFirst()).to.equal('L1, F1');
+    expect(p1.lastFirst()).toBe('L1, F1');
     p1.lN = 'L2';
-    expect(p1.lastFirst()).to.equal('L2, F1');
+    expect(p1.lastFirst()).toBe('L2, F1');
   });
 
 
   it('lazy values are not initialized until accessed', () => {
-    expect(p1.hasOwnProperty('lazyName')).to.be.false;
-    expect(p1.lazyName).to.equal('F1 L1');
-    expect(p1.hasOwnProperty('lazyName')).to.be.true;
+    expect(p1.hasOwnProperty('lazyName')).toBe(false);
+    expect(p1.lazyName).toBe('F1 L1');
+    expect(p1.hasOwnProperty('lazyName')).toBe(true);
   });
 
 
   it('lazy values can be overriden', () => {
     const p2 = new Person({lazyName: 'value'});
-    expect(p2.hasOwnProperty('lazyName')).to.be.true;
-    expect(p2.lazyName).to.equal('value');
+    expect(p2.hasOwnProperty('lazyName')).toBe(true);
+    expect(p2.lazyName).toBe('value');
     p2.lazyName = 'new';
-    expect(p2.lazyName).to.equal('new');
+    expect(p2.lazyName).toBe('new');
   });
 
 
   it('basic property access', () => {
-    expect(p1.fN).to.equal('F1');
-    expect(p1.lN).to.equal('L1');
+    expect(p1.fN).toBe('F1');
+    expect(p1.lN).toBe('L1');
   });
 
 
   it('basic property access', () => {
-    expect(p1.fN).to.equal('F1');
-    expect(p1.lN).to.equal('L1');
+    expect(p1.fN).toBe('F1');
+    expect(p1.lN).toBe('L1');
   });
 
 
   it('computed property access', () => {
-    expect(p1.name).to.equal('F1 L1');
+    expect(p1.name).toBe('F1 L1');
 
     p1.fN = 'F2';
-    expect(p1.fN).to.equal('F2');
-    expect(p1.name).to.equal('F2 L1');
+    expect(p1.fN).toBe('F2');
+    expect(p1.name).toBe('F2 L1');
 
     p1.lN = 'L2';
-    expect(p1.lN).to.equal('L2');
-    expect(p1.name).to.equal('F2 L2');
+    expect(p1.lN).toBe('L2');
+    expect(p1.name).toBe('F2 L2');
   });
 
 
@@ -254,29 +260,29 @@ describe('Swift', () => {
     const args = [];
 
     const off = p1.$willSet(['fN'], function(next) {
-      expect(next).to.not.equal(this.fN);
+      expect(next).not.toBe(this.fN);
       args.push([this.fN, next]);
     });
 
-    // $willSet not called for setting to equal value
+    // $willSet not called for setting toBe value
     p1.fN = 'F1';
-    expect(args.length).to.equal(0);
+    expect(args.length).toBe(0);
 
     // called
     p1.fN = 'F2';
-    expect(args).to.eql([['F1', 'F2']]);
+    expect(args).toEqual([['F1', 'F2']]);
 
     // not called
     p1.fN = 'F2';
-    expect(args).to.eql([['F1', 'F2']]);
+    expect(args).toEqual([['F1', 'F2']]);
 
     // called
     p1.fN = 'F3';
-    expect(args).to.eql([['F1', 'F2'], ['F2', 'F3']]);
+    expect(args).toEqual([['F1', 'F2'], ['F2', 'F3']]);
 
     off();
     p1.fN = 'F4';
-    expect(args).to.eql([['F1', 'F2'], ['F2', 'F3']]);
+    expect(args).toEqual([['F1', 'F2'], ['F2', 'F3']]);
 
   });
 
@@ -285,25 +291,25 @@ describe('Swift', () => {
     const args = [];
 
     p1.$willSet(['lN'], function(next) {
-      expect(next).to.not.equal(this.lN);
+      expect(next).not.toBe(this.lN);
       args.push([this.lN, next]);
     });
 
-    // $willSet not called for setting to equal value
+    // $willSet not called for setting toBe value
     p1.lN = 'L1';
-    expect(args.length).to.equal(0);
+    expect(args.length).toBe(0);
 
     // called
     p1.lN = 'L2';
-    expect(args).to.eql([['L1', 'L2']]);
+    expect(args).toEqual([['L1', 'L2']]);
 
     // not called
     p1.lN = 'L2';
-    expect(args).to.eql([['L1', 'L2']]);
+    expect(args).toEqual([['L1', 'L2']]);
 
     // called
     p1.lN = 'L3';
-    expect(args).to.eql([['L1', 'L2'], ['L2', 'L3']]);
+    expect(args).toEqual([['L1', 'L2'], ['L2', 'L3']]);
   });
 
 
@@ -311,29 +317,29 @@ describe('Swift', () => {
     const args = [];
 
     const off = p1.$didSet(['fN'], function(prev) {
-      expect(prev).to.not.equal(this.fN);
+      expect(prev).not.toBe(this.fN);
       args.push([prev, this.fN]);
     });
 
-    // $didSet not called for setting to equal value
+    // $didSet not called for setting toBe value
     p1.fN = 'F1';
-    expect(args.length).to.equal(0);
+    expect(args.length).toBe(0);
 
     // called
     p1.fN = 'F2';
-    expect(args).to.eql([['F1', 'F2']]);
+    expect(args).toEqual([['F1', 'F2']]);
 
     // not called
     p1.fN = 'F2';
-    expect(args).to.eql([['F1', 'F2']]);
+    expect(args).toEqual([['F1', 'F2']]);
 
     // called
     p1.fN = 'F3';
-    expect(args).to.eql([['F1', 'F2'], ['F2', 'F3']]);
+    expect(args).toEqual([['F1', 'F2'], ['F2', 'F3']]);
 
     off();
     p1.fN = 'F4';
-    expect(args).to.eql([['F1', 'F2'], ['F2', 'F3']]);
+    expect(args).toEqual([['F1', 'F2'], ['F2', 'F3']]);
   });
 
 
@@ -341,25 +347,25 @@ describe('Swift', () => {
     const args = [];
 
     p1.$didSet(['lN'], function(prev) {
-      expect(prev).to.not.equal(this.lN);
+      expect(prev).not.toBe(this.lN);
       args.push([prev, this.lN]);
     });
 
-    // $didSet not called for setting to equal value
+    // $didSet not called for setting toBe value
     p1.lN = 'L1';
-    expect(args.length).to.equal(0);
+    expect(args.length).toBe(0);
 
     // called
     p1.lN = 'L2';
-    expect(args).to.eql([['L1', 'L2']]);
+    expect(args).toEqual([['L1', 'L2']]);
 
     // not called
     p1.lN = 'L2';
-    expect(args).to.eql([['L1', 'L2']]);
+    expect(args).toEqual([['L1', 'L2']]);
 
     // called
     p1.lN = 'L3';
-    expect(args).to.eql([['L1', 'L2'], ['L2', 'L3']]);
+    expect(args).toEqual([['L1', 'L2'], ['L2', 'L3']]);
   });
 
 
@@ -367,25 +373,25 @@ describe('Swift', () => {
     const args = [];
 
     p1.$willSet(['name'], function(next) {
-      expect(next).to.not.equal(this.name);
+      expect(next).not.toBe(this.name);
       args.push([this.name, next]);
     });
 
-    // $willSet not called for setting to equal value
+    // $willSet not called for setting toBe value
     p1.fN = 'F1';
-    expect(args.length).to.equal(0);
+    expect(args.length).toBe(0);
 
     // called
     p1.fN = 'F2';
-    expect(args).to.eql([['F1 L1', 'F2 L1']]);
+    expect(args).toEqual([['F1 L1', 'F2 L1']]);
 
     // not called
     p1.fN = 'F2';
-    expect(args).to.eql([['F1 L1', 'F2 L1']]);
+    expect(args).toEqual([['F1 L1', 'F2 L1']]);
 
     // called
     p1.fN = 'F3';
-    expect(args).to.eql([['F1 L1', 'F2 L1'], ['F2 L1', 'F3 L1']]);
+    expect(args).toEqual([['F1 L1', 'F2 L1'], ['F2 L1', 'F3 L1']]);
   });
 
 
@@ -393,25 +399,25 @@ describe('Swift', () => {
     const args = [];
 
     p1.$didSet(['name'], function(prev) {
-      expect(prev).to.not.equal(this.name);
+      expect(prev).not.toBe(this.name);
       args.push([prev, this.name]);
     });
 
-    // $didSet not called for setting to equal value
+    // $didSet not called for setting toBe value
     p1.fN = 'F1';
-    expect(args.length).to.equal(0);
+    expect(args.length).toBe(0);
 
     // called
     p1.fN = 'F2';
-    expect(args).to.eql([['F1 L1', 'F2 L1']]);
+    expect(args).toEqual([['F1 L1', 'F2 L1']]);
 
     // not called
     p1.fN = 'F2';
-    expect(args).to.eql([['F1 L1', 'F2 L1']]);
+    expect(args).toEqual([['F1 L1', 'F2 L1']]);
 
     // called
     p1.fN = 'F3';
-    expect(args).to.eql([['F1 L1', 'F2 L1'], ['F2 L1', 'F3 L1']]);
+    expect(args).toEqual([['F1 L1', 'F2 L1'], ['F2 L1', 'F3 L1']]);
   });
 
 
@@ -419,25 +425,25 @@ describe('Swift', () => {
     const args = [];
 
     p1.$willSet(['name'], function(next) {
-      expect(next).to.not.equal(this.name);
+      expect(next).not.toBe(this.name);
       args.push([this.name, next]);
     });
 
-    // $willSet not called for setting to equal value
+    // $willSet not called for setting toBe value
     p1.lN = 'L1';
-    expect(args.length).to.equal(0);
+    expect(args.length).toBe(0);
 
     // called
     p1.lN = 'L2';
-    expect(args).to.eql([['F1 L1', 'F1 L2']]);
+    expect(args).toEqual([['F1 L1', 'F1 L2']]);
 
     // not called
     p1.lN = 'L2';
-    expect(args).to.eql([['F1 L1', 'F1 L2']]);
+    expect(args).toEqual([['F1 L1', 'F1 L2']]);
 
     // called
     p1.lN = 'L3';
-    expect(args).to.eql([['F1 L1', 'F1 L2'], ['F1 L2', 'F1 L3']]);
+    expect(args).toEqual([['F1 L1', 'F1 L2'], ['F1 L2', 'F1 L3']]);
   });
 
 
@@ -445,87 +451,87 @@ describe('Swift', () => {
     const args = [];
 
     p1.$didSet(['name'], function(prev) {
-      expect(this.name).to.not.equal(prev);
+      expect(this.name).not.toBe(prev);
       args.push([prev, this.name]);
     });
 
-    // $didSet not called for setting to equal value
+    // $didSet not called for setting toBe value
     p1.lN = 'L1';
-    expect(args.length).to.equal(0);
+    expect(args.length).toBe(0);
 
     // called
     p1.lN = 'L2';
-    expect(args).to.eql([['F1 L1', 'F1 L2']]);
+    expect(args).toEqual([['F1 L1', 'F1 L2']]);
 
     // not called
     p1.lN = 'L2';
-    expect(args).to.eql([['F1 L1', 'F1 L2']]);
+    expect(args).toEqual([['F1 L1', 'F1 L2']]);
 
     // called
     p1.lN = 'L3';
-    expect(args).to.eql([['F1 L1', 'F1 L2'], ['F1 L2', 'F1 L3']]);
+    expect(args).toEqual([['F1 L1', 'F1 L2'], ['F1 L2', 'F1 L3']]);
   });
 
 
   it('complex integer graph', () => {
-    expect(p1.integer).to.equal(undefined);
+    expect(p1.integer).toBe(undefined);
 
     p1.integer = 1;
-    expect(p1.integer).to.equal(1);
+    expect(p1.integer).toBe(1);
 
     p1.integer = 2;
-    expect(p1.integer).to.equal(2);
+    expect(p1.integer).toBe(2);
 
     p1.integer = 2;
-    expect(p1.integer).to.equal(2);
+    expect(p1.integer).toBe(2);
 
     p1.integer = 3;
-    expect(p1.integer).to.equal(3);
+    expect(p1.integer).toBe(3);
 
     p1.integer = 4.5;
-    expect(p1.integer).to.equal(4);
+    expect(p1.integer).toBe(4);
 
     p1.integer = 4.8;
-    expect(p1.integer).to.equal(4);
+    expect(p1.integer).toBe(4);
 
     p1.integer = 8.7;
-    expect(p1.integer).to.equal(8);
+    expect(p1.integer).toBe(8);
 
     p1.integer2 = 32;
-    expect(p1.integer).to.equal(16);
-    expect(p1.integer2).to.equal(32);
-    expect(p1.integer4).to.equal(64);
-    expect(p1.integer8).to.equal(128);
+    expect(p1.integer).toBe(16);
+    expect(p1.integer2).toBe(32);
+    expect(p1.integer4).toBe(64);
+    expect(p1.integer8).toBe(128);
 
     p1.integer4 = 32;
-    expect(p1.integer).to.equal(8);
-    expect(p1.integer2).to.equal(16);
-    expect(p1.integer4).to.equal(32);
-    expect(p1.integer8).to.equal(64);
+    expect(p1.integer).toBe(8);
+    expect(p1.integer2).toBe(16);
+    expect(p1.integer4).toBe(32);
+    expect(p1.integer8).toBe(64);
 
     p1.integer8 = 32;
-    expect(p1.integer).to.equal(4);
-    expect(p1.integer2).to.equal(8);
-    expect(p1.integer4).to.equal(16);
-    expect(p1.integer8).to.equal(32);
+    expect(p1.integer).toBe(4);
+    expect(p1.integer2).toBe(8);
+    expect(p1.integer4).toBe(16);
+    expect(p1.integer8).toBe(32);
 
     p1.integer8 = 41;
-    expect(p1.integer).to.equal(5);
-    expect(p1.integer2).to.equal(10);
-    expect(p1.integer4).to.equal(20);
-    expect(p1.integer8).to.equal(40);
+    expect(p1.integer).toBe(5);
+    expect(p1.integer2).toBe(10);
+    expect(p1.integer4).toBe(20);
+    expect(p1.integer8).toBe(40);
 
     p1.integer8 = 44;
-    expect(p1.integer).to.equal(5);
-    expect(p1.integer2).to.equal(10);
-    expect(p1.integer4).to.equal(20);
-    expect(p1.integer8).to.equal(44);
+    expect(p1.integer).toBe(5);
+    expect(p1.integer2).toBe(10);
+    expect(p1.integer4).toBe(20);
+    expect(p1.integer8).toBe(44);
 
     p1.integer = 6;
-    expect(p1.integer).to.equal(6);
-    expect(p1.integer2).to.equal(12);
-    expect(p1.integer4).to.equal(24);
-    expect(p1.integer8).to.equal(48);
+    expect(p1.integer).toBe(6);
+    expect(p1.integer2).toBe(12);
+    expect(p1.integer4).toBe(24);
+    expect(p1.integer8).toBe(48);
   });
 
 
@@ -537,28 +543,28 @@ describe('Swift', () => {
       sums.push(this.slowSum);
     });
 
-    expect(p1.slowSum).to.equal(3);
+    expect(p1.slowSum).toBe(3);
 
     p1.add1 = 10;
-    expect(p1.add1).to.equal(10);
-    expect(p1.slowSum).to.equal(3);
-    expect(sums.length).to.equal(0);
+    expect(p1.add1).toBe(10);
+    expect(p1.slowSum).toBe(3);
+    expect(sums.length).toBe(0);
 
     p1.add2 = 7;
-    expect(p1.add2).to.equal(7);
-    expect(p1.slowSum).to.equal(3);
-    expect(sums.length).to.equal(0);
+    expect(p1.add2).toBe(7);
+    expect(p1.slowSum).toBe(3);
+    expect(sums.length).toBe(0);
 
     p1.add2 = 11;
-    expect(p1.add2).to.equal(11);
-    expect(p1.slowSum).to.equal(3);
-    expect(sums.length).to.equal(0);
+    expect(p1.add2).toBe(11);
+    expect(p1.slowSum).toBe(3);
+    expect(sums.length).toBe(0);
 
     p1.$commitEnabled = true;
     p1.$commit();
 
-    expect(p1.slowSum).to.equal(21);
-    expect(sums).to.eql([21]);
+    expect(p1.slowSum).toBe(21);
+    expect(sums).toEqual([21]);
   });
 
 
@@ -573,18 +579,18 @@ describe('Swift', () => {
       args.push(add1, add2, this.add1, this.add2);
     });
 
-    expect(p1.slowSum).to.equal(3);
+    expect(p1.slowSum).toBe(3);
 
     p1.$set({
       add1: 10,
       add2: 11,
     });
 
-    expect(p1.add1).to.equal(10);
-    expect(p1.add2).to.equal(11);
-    expect(p1.slowSum).to.equal(21);
-    expect(sums).to.eql([21]);
-    expect(args).to.eql([{
+    expect(p1.add1).toBe(10);
+    expect(p1.add2).toBe(11);
+    expect(p1.slowSum).toBe(21);
+    expect(sums).toEqual([21]);
+    expect(args).toEqual([{
       add1: 1,
       add2: 2,
     }, {
@@ -596,50 +602,50 @@ describe('Swift', () => {
 
   it('parse sanitizes set value. format formats get value', () => {
     const p2 = new Person({bool: 3});
-    expect(p2.bool).to.equal('T');
-    expect(p1.bool).to.equal('F');
-    // expect(p1.hasOwnProperty('bool')).to.equal(true);
+    expect(p2.bool).toBe('T');
+    expect(p1.bool).toBe('F');
+    // expect(p1.hasOwnProperty('bool')).toBe(true);
     p1.bool = 1;
     p2.bool = '';
-    expect(p1.bool).to.equal('T');
-    expect(p2.bool).to.equal('F');
+    expect(p1.bool).toBe('T');
+    expect(p2.bool).toBe('F');
     p1.bool = 0;
-    expect(p1.bool).to.equal('F');
+    expect(p1.bool).toBe('F');
     p1.bool = {};
-    expect(p1.bool).to.equal('T');
+    expect(p1.bool).toBe('T');
     p1.bool = null;
-    expect(p1.bool).to.equal('F');
+    expect(p1.bool).toBe('F');
     p1.bool = true;
-    expect(p1.bool).to.equal('T');
+    expect(p1.bool).toBe('T');
     p1.bool = NaN;
-    expect(p1.bool).to.equal('F');
+    expect(p1.bool).toBe('F');
     p1.bool = undefined;
-    expect(p1.bool).to.equal('F');
+    expect(p1.bool).toBe('F');
   });
 
 
   it('parse sanitizes set value. format formats get value. for get/set', () => {
-    expect(p1.date.getTime()).to.be.NaN;
-    expect(p1.date instanceof Date).to.equal(true);
-    expect(p1._timestamp).to.be.NaN;
+    expect(p1.date.getTime()).toBeNaN();
+    expect(p1.date instanceof Date).toBe(true);
+    expect(p1._timestamp).toBeNaN();
 
     p1.date = 0;
-    expect(p1.date.getTime()).to.equal(0);
-    expect(p1.date instanceof Date).to.equal(true);
-    expect(p1._timestamp).to.equal(0);
+    expect(p1.date.getTime()).toBe(0);
+    expect(p1.date instanceof Date).toBe(true);
+    expect(p1._timestamp).toBe(0);
 
     p1.date = '1999-11-11';
-    expect(p1.date.getUTCFullYear()).to.equal(1999);
-    expect(p1.date.getUTCMonth()).to.equal(10);
-    expect(p1.date.getUTCDate()).to.equal(11);
-    expect(p1.date instanceof Date).to.equal(true);
-    expect(p1._timestamp).to.equal(942278400000);
+    expect(p1.date.getUTCFullYear()).toBe(1999);
+    expect(p1.date.getUTCMonth()).toBe(10);
+    expect(p1.date.getUTCDate()).toBe(11);
+    expect(p1.date instanceof Date).toBe(true);
+    expect(p1._timestamp).toBe(942278400000);
   });
 
 
   it('basic toJSON', () => {
     p1.date = 1000;
-    expect(p1.toJSON()).to.eql({
+    expect(p1.toJSON()).toEqual({
       bool: 'F',
       date: '1000',
       name: 'F1 L1',
@@ -652,7 +658,7 @@ describe('Swift', () => {
     p1.x = 4;
     p1.bool = true;
     p1.fN = 'F2';
-    expect(p1.toJSON()).to.eql({
+    expect(p1.toJSON()).toEqual({
       bool: 'T',
       date: '1000',
       name: 'F2 L1',
@@ -680,14 +686,14 @@ describe('Swift', () => {
     });
     const c1 = new C();
 
-    expect(c1.toJSON()).to.eql({});
+    expect(c1.toJSON()).toEqual({});
     c1.x = 3;
-    expect(c1.toJSON()).to.eql({x: 3});
+    expect(c1.toJSON()).toEqual({x: 3});
     c1.x = null;
-    expect(c1.toJSON()).to.eql({});
+    expect(c1.toJSON()).toEqual({});
     c1.z = 2;
     c1.y = 3;
-    expect(c1.toJSON()).to.eql({y: 3});
+    expect(c1.toJSON()).toEqual({y: 3});
   });
 
 
@@ -698,7 +704,7 @@ describe('Swift', () => {
     });
 
     p1.x = 3;
-    expect(args).to.eql([{
+    expect(args).toEqual([{
       xTimes2: 6,
     }, p1,
     {
@@ -709,7 +715,7 @@ describe('Swift', () => {
     off();
 
     p1.x = 2;
-    expect(args).to.eql([]);
+    expect(args).toEqual([]);
   });
 
 
@@ -722,7 +728,7 @@ describe('Swift', () => {
     p1.x = 3;
 
     setTimeout(() => {
-      expect(args).to.eql([{
+      expect(args).toEqual([{
         x: 3,
         xTimes2: 6,
       }, p1]);
@@ -732,9 +738,30 @@ describe('Swift', () => {
       off();
       p1.x = 2;
       setTimeout(() => {
-        expect(args).to.eql([]);
+        expect(args).toEqual([]);
         done();
       }, 30);
     }, 30);
+  });
+
+  it('equal is used as a field comparator', () => {
+    let sizes = [];
+
+    p1.$willSet('size', function(newSize) {
+      sizes.push(newSize);
+    });
+
+    p1.size = {w: 100, h: 50};
+
+    expect(sizes).toEqual([{w: 100, h: 50}]);
+
+    p1.size = {w: 100, h: 50};
+    expect(sizes).toEqual([{w: 100, h: 50}]);
+
+    p1.size = {w: 101, h: 50};
+    expect(sizes).toEqual([{w: 100, h: 50}, {w: 101, h: 50}]);
+
+    p1.size = {w: 101, h: 50};
+    expect(sizes).toEqual([{w: 100, h: 50}, {w: 101, h: 50}]);
   });
 });

@@ -1,6 +1,7 @@
 {
   "presets": [
     ["env", {
+      "modules": false,
       "targets": {
         "node": "current"
       },
@@ -11,23 +12,30 @@
     }]
   ],
   "plugins": [
-    "add-module-exports",
     "transform-class-properties",
     ["transform-object-rest-spread", {
       "useBuiltIns": true
-    }],
-    ["fast-async", {
-      "env": {
-        "augmentObject": false,
-        "dontMapStackTraces": true,
-        "dontInstallRequireHook": true
-      },
-      "compiler": {
-        "promises": true,
-        "generators": false
-      },
-      "runtimePattern": null,
-      "useRuntimeModule": false
     }]
-  ]
+  ],
+  "env": {
+    "test": {
+      "presets": [
+        ["env", {
+          "targets": {
+            "node": "current"
+          },
+          "exclude": [
+            "transform-regenerator"
+          ],
+          "debug": true
+        }]
+      ],
+      "plugins": [
+        "transform-class-properties",
+        ["transform-object-rest-spread", {
+          "useBuiltIns": true
+        }]
+      ]
+    }
+  }
 }

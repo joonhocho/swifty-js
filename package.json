@@ -1,25 +1,20 @@
 {
   "name": "swifty-js",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Swift like property observer (willSet, didSet) pattern for JavaScript.",
-  "main": "lib/index.js",
-  "directories": {
-    "test": "test"
-  },
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
   "scripts": {
-    "build": "babel src --out-dir lib",
-    "build-watch": "babel src --watch --out-dir lib",
-    "clear": "rm -rf ./lib ./coverage ./.nyc_output",
-    "coverage": "nyc npm test && nyc report --reporter=text-lcov | coveralls",
-    "nyc": "nyc npm test && nyc report --reporter=lcov",
-    "prepublish": "npm run clear && npm test",
-    "pretest": "npm run build",
-    "start": "npm test",
-    "test": "mocha",
-    "test-watch": "mocha --watch",
-    "update-D": "npm install --save-dev babel-cli@latest babel-preset-es2015@latest babel-preset-stage-0@latest babel-register@latest chai@latest chai-as-promised@latest coveralls@latest es6-promise@latest mocha@latest nyc@latest",
+    "build": "rollup -c",
+    "build-watch": "rollup -c -w",
+    "clear": "rm -rf ./dist ./coverage",
+    "start": "npm run clear && npm test && npm run build",
+    "test": "jest",
+    "test-coverage": "jest --coverage",
+    "test-watch": "jest --watch",
     "watch": "npm run build-watch & npm run test-watch"
   },
+  "pre-commit": "start",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/joonhocho/swifty-js.git"
@@ -38,21 +33,16 @@
   },
   "homepage": "https://github.com/joonhocho/swifty-js#readme",
   "devDependencies": {
-    "babel-cli": "^6.24.1",
-    "babel-eslint": "^7.0.0",
-    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-jest": "^21.0.2",
+    "babel-plugin-external-helpers": "^6.22.0",
     "babel-plugin-transform-class-properties": "^6.24.1",
-    "babel-plugin-transform-object-rest-spread": "^6.23.0",
-    "babel-preset-env": "^1.5.1",
-    "babel-register": "^6.24.1",
-    "chai": "^3.5.0",
-    "chai-as-promised": "^6.0.0",
-    "coveralls": "^2.11.14",
-    "eslint": "^3.7.1",
-    "eslint-import-resolver-babel-module-alias": "^1.5.1",
-    "eslint-plugin-import": "^2.7.0",
-    "fast-async": "^6.2.2",
-    "mocha": "^3.1.0",
-    "nyc": "^8.3.0"
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.0",
+    "jest": "^21.1.0",
+    "pre-commit": "^1.2.2",
+    "rollup": "^0.50.0",
+    "rollup-plugin-babel": "^3.0.2",
+    "rollup-plugin-commonjs": "^8.2.1",
+    "rollup-plugin-node-resolve": "^3.0.0"
   }
 }

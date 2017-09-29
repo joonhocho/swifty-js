@@ -108,7 +108,6 @@
       "always-multiline"
     ],
     "no-spaced-func": 2,
-    "react/require-extension": 2,
     "no-labels": 2,
     "no-unreachable": 2,
     "no-eval": 2,
