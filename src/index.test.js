@@ -764,4 +764,35 @@ describe('Swift', () => {
     p1.size = {w: 101, h: 50};
     expect(sizes).toEqual([{w: 100, h: 50}, {w: 101, h: 50}]);
   });
+
+  it('test $revision', () => {
+    const Simple = create({
+      bool: {
+        parse: Boolean,
+      },
+    });
+
+    const s1 = new Simple({});
+
+    expect(s1.$revision).toBe(0);
+    expect(s1.$revision).toBe(0);
+
+    s1.bool = 1;
+    expect(s1.$revision).toBe(1);
+
+    s1.bool = true;
+    expect(s1.$revision).toBe(1);
+
+    s1.bool = 0;
+    expect(s1.$revision).toBe(2);
+
+    s1.bool = false;
+    expect(s1.$revision).toBe(2);
+
+    s1.bool = 3;
+    expect(s1.$revision).toBe(3);
+
+    s1.bool = {};
+    expect(s1.$revision).toBe(3);
+  });
 });

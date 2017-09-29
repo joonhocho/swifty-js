@@ -42,6 +42,7 @@ const $$toJSON = '$$toJSON';
 const $$updating = '$$updating';
 const $$willSetMap = '$$willSetMap';
 const $commitEnabled = '$commitEnabled';
+const $revision = '$revision';
 
 const create$key = (key) => `K$${key}`;
 const create$queue = (key) => `Q$${key}`;
@@ -134,6 +135,8 @@ const $$pendingGetter = createNullMapGetter($$pending);
 const $$updatingGetter = createPrimitiveValueGetter($$updating, false);
 
 const $commitEnabledGetter = createPrimitiveValueGetter($commitEnabled, true);
+
+const $revisionGetter = createPrimitiveValueGetter($revision, 0);
 
 
 const computeSetter = (key, get) => function() {
@@ -358,6 +361,7 @@ function $commit() {
   }
 
   if (changed) {
+    this.$revision++;
     const fns = this[$$didChange];
     if (fns.length > 0) {
       const copy = fns.slice();
@@ -510,6 +514,7 @@ const create = (props) => {
   });
 
   defineLazyHiddenPrototypeProperties(prototype, {
+    $revision: $revisionGetter,
     $commitEnabled: $commitEnabledGetter,
     [$$didChangeAsyncInitial]: $$didChangeAsyncInitialGetter,
     [$$didChangeAsyncPending]: $$didChangeAsyncPendingGetter,
