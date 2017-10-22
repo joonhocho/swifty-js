@@ -33,10 +33,10 @@ const $$enumerables = '$$enumerables';
 const $$fnIdKey = '$$ID';
 const $$fnKeys = '$$KEYS';
 const $$init = '$$init';
-const $$initial = '$$initial';
+const $$initialValues = '$$initialValues';
 const $$onDidSet = '$$onDidSet';
 const $$onDidSetMany = '$$onDidSetMany';
-const $$pending = '$$pending';
+const $$pendingValues = '$$pendingValues';
 const $$propDidSet = '$$propDidSet';
 const $$toJSON = '$$toJSON';
 const $$updating = '$$updating';
@@ -128,9 +128,9 @@ const $$didChangeAsyncInitialGetter = createNullMapGetter($$didChangeAsyncInitia
 
 const $$didChangeAsyncPendingGetter = createNullMapGetter($$didChangeAsyncPending);
 
-const $$initialGetter = createNullMapGetter($$initial);
+const $$initialGetter = createNullMapGetter($$initialValues);
 
-const $$pendingGetter = createNullMapGetter($$pending);
+const $$pendingGetter = createNullMapGetter($$pendingValues);
 
 const $$updatingGetter = createPrimitiveValueGetter($$updating, false);
 
@@ -153,14 +153,14 @@ const $keySetter = ($key) => function(val) {
   defineHiddenProperty(this, $key, val);
 };
 
-const $queueGetter = ($queue) => function() {
+const $queueGetter = ($queueForKey) => function() {
   // unintialized for this instance
-  return this[$queue] = [];
+  return this[$queueForKey] = [];
 };
 
-const $queueSetter = ($queue) => function(val) {
+const $queueSetter = ($queueForKey) => function(val) {
   // intialize for this instance
-  defineHiddenProperty(this, $queue, val);
+  defineHiddenProperty(this, $queueForKey, val);
 };
 
 const observablePropGetterWithGetter = (key, $key, get, format) =>
@@ -202,7 +202,7 @@ const readOnlyPropSetter = ($key) => function(val) {
   }
 };
 
-const observablePropSetter = (key, $key, $queue, set, willSet, parse, equal) => {
+const observablePropSetter = (key, $key, $queueForKey, set, willSet, parse, equal) => {
   const hasParse = isFunction(parse);
   const hasEqual = isFunction(equal);
   const hasSet = isFunction(set);
@@ -211,7 +211,7 @@ const observablePropSetter = (key, $key, $queue, set, willSet, parse, equal) => 
   return function(newValue) {
     if (hasParse) newValue = parse(newValue);
 
-    const queue = this[$queue];
+    const queue = this[$queueForKey];
     if (arrayIndexOfNaN(queue, newValue) >= 0) {
       // already setting this value in the stack
       // avoid infinite loop
@@ -226,14 +226,17 @@ const observablePropSetter = (key, $key, $queue, set, willSet, parse, equal) => 
     }
 
     const initialUpdate = !this[$$updating];
-    const pending = this[$$pending];
+    const pending = this[$$pendingValues];
     const willSetMap = this[$$willSetMap];
 
     if (initialUpdate) {
       this[$$updating] = true;
     }
 
-    this[$$initial][key] = this[$key];
+    const initialValues = this[$$initialValues];
+    if (!(key in initialValues)) {
+      initialValues[key] = this[$key];
+    }
 
     for (let i = 0; i < queue.length; i++) {
       const nextVal = queue[i];
@@ -259,8 +262,7 @@ const observablePropSetter = (key, $key, $queue, set, willSet, parse, equal) => 
         set.call(this, nextVal, val);
       }
 
-      this[$key] = nextVal;
-      pending[key] = nextVal;
+      this[$key] = pending[key] = nextVal;
     }
 
     queue.length = 0;
@@ -274,8 +276,8 @@ const observablePropSetter = (key, $key, $queue, set, willSet, parse, equal) => 
 
 function $commit() {
   // do didSet
-  const initial = this[$$initial];
-  const pending = this[$$pending];
+  const initial = this[$$initialValues];
+  const pending = this[$$pendingValues];
   const propDidSetMap = this[$$propDidSet];
   const onDidSetMap = this[$$onDidSet];
   const onDidSetManyMap = this[$$onDidSetMany];
@@ -283,8 +285,8 @@ function $commit() {
   const didSetManyMap = this[$$didSetManyMap];
 
   this[$$updating] = false;
-  this[$$pending] = Object.create(null);
-  this[$$initial] = Object.create(null);
+  this[$$pendingValues] = Object.create(null);
+  this[$$initialValues] = Object.create(null);
 
   const keys = Object.keys(pending);
 
@@ -480,10 +482,10 @@ const reservedKeys = {
   [$$fnIdKey]: 1,
   [$$fnKeys]: 1,
   [$$init]: 1,
-  [$$initial]: 1,
+  [$$initialValues]: 1,
   [$$onDidSetMany]: 1,
   [$$onDidSet]: 1,
-  [$$pending]: 1,
+  [$$pendingValues]: 1,
   [$$propDidSet]: 1,
   [$$toJSON]: 1,
   [$$updating]: 1,
@@ -523,8 +525,8 @@ const create = (props) => {
     [$$didChange]: $$didChangeGetter,
     [$$didSetManyMap]: $$didSetManyMapGetter,
     [$$didSetMap]: $$didSetMapGetter,
-    [$$initial]: $$initialGetter,
-    [$$pending]: $$pendingGetter,
+    [$$initialValues]: $$initialGetter,
+    [$$pendingValues]: $$pendingGetter,
     [$$updating]: $$updatingGetter,
     [$$willSetMap]: $$willSetMapGetter,
   });
@@ -729,7 +731,7 @@ const defineGetSetProperty = (Class, key, {
   }
 
   const $key = create$key(key);
-  const $queue = create$queue(key);
+  const $queueForKey = create$queue(key);
 
   defineProperty(Class.prototype, $key, {
     get: $keyGetter($key),
@@ -738,9 +740,9 @@ const defineGetSetProperty = (Class, key, {
     configurable: false,
   });
 
-  defineProperty(Class.prototype, $queue, {
-    get: $queueGetter($queue),
-    set: $queueSetter($queue),
+  defineProperty(Class.prototype, $queueForKey, {
+    get: $queueGetter($queueForKey),
+    set: $queueSetter($queueForKey),
     enumerable: false,
     configurable: false,
   });
@@ -750,7 +752,7 @@ const defineGetSetProperty = (Class, key, {
       observablePropGetterWithGetter(key, $key, get, format) :
       simpleGetter($key, format),
     set: observablePropSetter(
-      key, $key, $queue,
+      key, $key, $queueForKey,
       set, willSet, parse, equal
     ),
     enumerable,
@@ -804,7 +806,7 @@ const defineValueProperty = (Class, key, {
   }
 
   const $key = create$key(key);
-  const $queue = create$queue(key);
+  const $queueForKey = create$queue(key);
 
   defineProperty(Class.prototype, $key, {
     get: $keyGetter($key),
@@ -813,9 +815,9 @@ const defineValueProperty = (Class, key, {
     configurable: false,
   });
 
-  defineProperty(Class.prototype, $queue, {
-    get: $queueGetter($queue),
-    set: $queueSetter($queue),
+  defineProperty(Class.prototype, $queueForKey, {
+    get: $queueGetter($queueForKey),
+    set: $queueSetter($queueForKey),
     enumerable: false,
     configurable: false,
   });
@@ -826,7 +828,7 @@ const defineValueProperty = (Class, key, {
       simpleGetter($key, format),
     set: writable ?
       observablePropSetter(
-        key, $key, $queue,
+        key, $key, $queueForKey,
         null, willSet, parse, equal
       ) :
       readOnlyPropSetter($key),
